@@ -182,7 +182,7 @@ int main(int argc, char **argv) {
   
   if (argc >= 2) {
     publishedName = argv[1];
-    cout << "Welcome to the world of tomorrow " << publishedName
+    cout << "Pasadena City College is the best!" << publishedName
          << "!  Behaviour turnDirectionule started." << endl;
   } else {
     publishedName = hostname;
