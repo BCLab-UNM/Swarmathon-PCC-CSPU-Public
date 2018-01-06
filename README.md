@@ -87,24 +87,35 @@ sudo apt install git
 
 ##### 5. Install SwarmBaseCode-ROS
 
-1. Clone this GitHub repository to your home directory (~), renaming the repo so ROS and catkin can properly identify it (you can name the target directory whatever you like):
+1a. To update your existing repository using the base code (your competition repository name will have been provided to you):
+
+```
+cd YourRepositoryName
+git remote add SwarmBaseCode https://github.com/BCLab-UNM/SwarmBaseCode-ROS
+git pull SwarmBaseCode
+```
+
+#### OR
+
+If you just want a clean copy of the base code then:
+
+1b. Clone this GitHub repository to your home directory (~), renaming the repo so ROS and catkin can properly identify it (you can name the target directory whatever you like):
 
   ```
   cd ~
   git clone https://github.com/BCLab-UNM/SwarmBaseCode-ROS.git SwarmBaseCode-ROS
+  cd SwarmBaseCode-ROS
   ```
 
-2. Change your current working directory to the root directory of the downloaded repo.
 
-
-3. Set up [ublox](http://wiki.ros.org/ublox) GPS submodule and April Tag library:
+2. Set up [ublox](http://wiki.ros.org/ublox) GPS submodule and April Tag library:
 
   ```
   git submodule init
   git submodule update
   ```
 
-4. Compile SwarmBaseCode-ROS as a ROS catkin workspace:
+3. Compile SwarmBaseCode-ROS as a ROS catkin workspace:
  
   Make sure bash is aware of the location of the ROS environment:
   ```
@@ -319,8 +330,14 @@ You are now set for rapid deployment and development!
 - -R will ask the user for which rovers they wish to connect with and start sending information back to the workstation GUI
 
 ```./deploy.sh -L```
-- -L will give users the ability to compile and package the repository that they are CURRENTLY running the script from, transfer, unpack, and start sending information back to the workstation automatically. This option has a unique option to assist users in rapid development:
-	+ Typing '-RC' recompiles the code base the user is currently using to deploy to a swarmie
+- -L will compile and compress the local repository from which the script was run. Then the user is prompted for a list of rovers that will receive the repository. The code is unpacked on the specified rovers and the nodes started.
+
+- ex.) ```./deploy.sh -L``` means the local repo is compiled and compressed
+
+- Rover Name/IP To Start: ```R17 R18 R19``` means the packaged local repo is sent to R17 R18 R19 and then those nodes are started
+
+- If changes are made to the local repo they will not take affect as part of the transfer until the script is made aware of the changes. This is done by using the -RC command in place of a target rover id:
+	+ Typing '-RC' recompiles the code base the user is currently using to deploy to a swarmie and repackages it for transfer
 
 ```deploy.sh -G {branch}```
 (where branch is the desired branch you wish to pull)
