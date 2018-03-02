@@ -4,7 +4,14 @@
 #include "Controller.h"
 #include "Tag.h"
 
-class PickUpController : virtual Controller
+//OpenCV Alex C
+#include <opencv2/imgproc/imgproc.hpp>
+#include <opencv2/highgui/highgui.hpp>
+#include <opencv2/opencv.hpp>
+#include <image_transport/image_transport.h>
+#include <cv_bridge/cv_bridge.h>
+
+class PickUpController : public virtual Controller
 {
 public:
   PickUpController();
@@ -26,6 +33,9 @@ public:
   bool GetTargetHeld() {return targetHeld;}
 
   void SetCurrentTimeInMilliSecs( long int time );
+
+  // Alex C
+  void UpdateFrame(const cv::Mat img);
 
 protected:
 
@@ -76,6 +86,11 @@ private:
 
   //this controller has control~
   bool has_control = false;
+
+  // Alex C
+  cv::Mat img;
+  bool isHoldingCubeCV();
+  
 };
 
 #endif // end header define

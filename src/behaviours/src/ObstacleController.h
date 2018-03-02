@@ -4,7 +4,7 @@
 #include "Controller.h"
 #include "Tag.h"
 
-class ObstacleController : virtual Controller
+class ObstacleController : public virtual Controller
 {
 public:
   ObstacleController();

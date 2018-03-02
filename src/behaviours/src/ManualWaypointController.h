@@ -5,7 +5,7 @@
 
 #include "Controller.h"
 
-class ManualWaypointController : virtual Controller
+class ManualWaypointController : public virtual Controller
 {
 public:
    ManualWaypointController();

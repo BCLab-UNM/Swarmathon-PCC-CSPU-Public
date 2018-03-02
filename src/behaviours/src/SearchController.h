@@ -8,7 +8,7 @@
  * This class implements the search control algorithm for the rovers. The code
  * here should be modified and enhanced to improve search performance.
  */
-class SearchController : virtual Controller {
+class SearchController : public virtual Controller {
 
 public:
 

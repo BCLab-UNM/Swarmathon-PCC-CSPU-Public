@@ -6,7 +6,7 @@
 #include "Tag.h"
 #include <math.h>
 
-class DropOffController : virtual Controller
+class DropOffController : public virtual Controller
 {
 public:
   DropOffController();

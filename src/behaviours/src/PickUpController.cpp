@@ -2,6 +2,37 @@
 #include <limits> // For numeric limits
 #include <cmath> // For hypot
 
+// for debugging 
+#include <ros/ros.h>
+#include <sstream>
+#include <std_msgs/String.h>
+extern ros::Publisher infoLogPublisher;
+extern ros::Publisher fingerAnglePublish;
+
+/*
+  search controller constructor
+
+  result.fingerAngle = M_PI/2;
+  result.wristAngle = M_PI/4;
+*/
+
+int secondAdder = 2;//-2
+
+float fingerAngleOpen = M_PI_2;//M_PI_2
+float fingerAngleClose = 0;//0
+float wristAngleDown = 1; // optimal angle for picking up the center of the cube (1.25 is all the way down)
+float wristAngleUp = 0;//how for up the wrist is in order to check contains cube cv (0.0 is all the way up) // 0.6
+
+float grasp_time_begin = 1.1;
+float raise_time_begin = 2.0;
+float check_time_begin = 5+secondAdder; // Alex C
+float lower_gripper_time_begin = 7.0+secondAdder;//4.0
+float target_reaquire_begin= 7.2+secondAdder;//4.2
+float target_pickup_task_time_limit = 8.0+secondAdder;//4.8//7.8
+int global_counter = 0;
+
+float last_rotation_before_being_lost = 1;
+
 PickUpController::PickUpController()
 {
   lockTarget = false;
@@ -25,9 +56,10 @@ PickUpController::~PickUpController() { /*Destructor*/  }
 void PickUpController::SetTagData(vector<Tag> tags)
 {
 
+
   if (tags.size() > 0)
   {
-
+    
     nTargetsSeen = tags.size();
 
     //we saw a target, set target_timer
@@ -42,6 +74,8 @@ void PickUpController::SetTagData(vector<Tag> tags)
 
       if (tags[i].getID() == 0)
       {
+
+        last_rotation_before_being_lost = result.pd.cmdAngularError;
 
         targetFound = true;
 
@@ -106,7 +140,7 @@ bool PickUpController::SetSonarData(float rangeCenter)
   {
     result.type = behavior;
     result.b = nextProcess;
-    result.reset = true;
+    result.reset = true; 
     targetHeld = true;
     return true;
   }
@@ -114,6 +148,7 @@ bool PickUpController::SetSonarData(float rangeCenter)
   return false;
 
 }
+
 
 void PickUpController::ProcessData()
 {
@@ -134,20 +169,40 @@ void PickUpController::ProcessData()
 
   //cout << "distance : " << blockDistanceFromCamera << " time is : " << Td << endl;
 
-  if (blockDistanceFromCamera < 0.14 && Td < 3.9)
+  stringstream ss;
+  ss << "\nPickupController::ProcessData" << "\n";
+  ss << "TD = " << Td << "\n";
+  ss << "lockTarget = " << lockTarget << "\n";
+  ss << "blockYawError = " << blockYawError << "\n";
+  ss << "blockDistanceFromCamera = " << blockDistanceFromCamera << "\n";
+  std_msgs::String msg;
+  msg.data = ss.str();
+  infoLogPublisher.publish(msg);
+
+
+
+  //if(isHoldingCubeCV())global_counter++;
+          //Td < 4.9 &&(blockDistanceFromCamera < 0.14 || (Td > 4 && isHoldingCubeCV()))          4.9
+  if ((Td < target_pickup_task_time_limit + 0.1 && blockDistanceFromCamera < 0.14) || global_counter > 10)
+  //if (global_counter > 10)
   {
     result.type = behavior;
     result.b = nextProcess;
     result.reset = true;
     targetHeld = true;
+    global_counter = 0;
   }
-  //Lower wrist and open fingures if no locked targt
-  else if (!lockTarget)
+  //Lower wrist and open fingures if no locked target
+  else if (!lockTarget )
   {
+    // Alex C
+    if(Td > lower_gripper_time_begin){global_counter=0;}
+
     //set gripper;
     result.fingerAngle = M_PI_2;
-    result.wristAngle = 1.25;
+    result.wristAngle = wristAngleDown;//1.25
   }
+
 }
 
 
@@ -180,13 +235,25 @@ bool PickUpController::ShouldInterrupt(){
   }
 }
 
+int currentPickUpState = 0; 
+const int PICKUP_STATE_MOVE_FORWARD = 0;// cube is visible but not locked on, Move forward, adjusting the angle
+const int PICKUP_STATE_MOVE_BACKWARD = 1;// cube is visible but rover is too close and not lined up correctly, needs to back up
+const int PICKUP_STATE_RELOCATE = 2;// lost sight of cube, 
+
 Result PickUpController::DoWork()
 {
 
-  has_control = true;
+  // alex c Debug
+  stringstream ss;
+  ss << "\nPickupController::DoWork" << "\n";
 
+  
+
+  has_control = true;
+  
   if (!targetHeld)
   {
+
     //threshold distance to be from the target block before attempting pickup
     float targetDistance = 0.15; //meters
 
@@ -221,17 +288,13 @@ Result PickUpController::DoWork()
     // 2. Approach Target phase: until *grasp_time_begin* seconds
     // 3. Stop and close fingers (hopefully on a block - we won't be able to see it remember): at *grasp_time_begin* seconds 
     // 4. Raise the gripper - does the rover see a block or did it miss it: at *raise_time_begin* seconds 
-    // 5. If we get here the target was not seen in the robots gripper so drive backwards and and try to get a new lock on a target: at *target_require_begin* seconds
+    // 5. If we get here the target was not seen in the robots gripper so drive backwards and and try to get a new lock on a target: at *target_reaquire_begin* seconds
     // 6. If we get here we give up and release control with a task failed flag: for *target_pickup_task_time_limit* seconds
     
     // If we don't see any blocks or cubes turn towards the location of the last cube we saw.
     // I.E., try to re-aquire the last cube we saw.
 
-    float grasp_time_begin = 1.5;
-    float raise_time_begin = 2.0;
-    float lower_gripper_time_begin = 4.0;
-    float target_reaquire_begin= 4.2;
-    float target_pickup_task_time_limit = 4.8;
+    
 
     //cout << "blockDistance DOWORK:  " << blockDistance << endl;
 
@@ -255,25 +318,47 @@ Result PickUpController::DoWork()
       if(!timeOut)
       {
         result.pd.cmdVel = 0.0;
-        result.pd.cmdAngularError= 0.0;
-        result.wristAngle = 1.25;
+        if(last_rotation_before_being_lost == 0){ last_rotation_before_being_lost = 0.00001; } // make sure not dividng by 0
+        float newAngle = -0.1 * (last_rotation_before_being_lost / fabs(last_rotation_before_being_lost) ); 
+
+        // 0.1 * (-blockYawError / abs(blockYawError) ); // turn at an anglular speed of 0.1 in the direction of the last seen spot of the cube
+        result.pd.cmdAngularError= newAngle; // -blockYawError
+        result.wristAngle = wristAngleDown; //1.25
         // result.fingerAngle does not need to be set here
 
         // We are getting ready to start the pre-programmed pickup routine now! Maybe? <(^_^)/"
         // This is a guard against being stuck permanently trying to pick up something that doesn't exist.
         timeOut = true;
 
-        // Rotate towards the block that we are seeing.
-        // The error is negated in order to turn in a way that minimizes error.
-        result.pd.cmdAngularError = -blockYawError;
       }
       //If in a counting state and has been counting for 1 second.
+      //          > 1.0
       else if (Td > 1.0 && Td < target_pickup_task_time_limit)
       {
-        // The rover will reverse straight backwards without turning.
-        result.pd.cmdVel = -0.15;
-        result.pd.cmdAngularError= 0.0;
+        if(blockDistance > 0.35)
+        {
+          // The rover will slowly go towards the cube's last position
+          result.pd.cmdVel = 0.05;// -0.15 Alex C
+          result.pd.cmdAngularError = 0; //  Alex C // 0  
+        }
+        else
+        {
+          // The rover will reverse angling towards the direction of the last seen cube.
+          result.pd.cmdVel = -0.05;// -0.15 Alex C
+          result.pd.cmdAngularError = -blockYawError/2.0; //  Alex C // 0  
+        }
+                     
       }
+
+        
+        ss << "I know i just saw a cube somewhere" << "\n";
+        ss << "-blockYawError = " << -blockYawError << "\n";
+        ss << "LRBBL = " << last_rotation_before_being_lost << "\n";
+        ss << "Block Distance = " << blockDistance << "\n";
+        ss << "cmdAngularError = " << result.pd.cmdAngularError << "\n";
+        std_msgs::String msg;
+        msg.data = ss.str();
+        infoLogPublisher.publish(msg);
     }
     else if (blockDistance > targetDistance && !lockTarget) //if a target is detected but not locked, and not too close.
     {
@@ -283,31 +368,45 @@ Result PickUpController::DoWork()
       if (vel > 0.2) vel = 0.2;
 
       result.pd.cmdVel = vel;
-      result.pd.cmdAngularError = -blockYawError;
+      float dist = blockDistance;
+
+      //if(dist == 0){dist = 0.00001;} // not necessary because parent if condition states blockDistance must be greater than 0.15
+      
+      result.pd.cmdAngularError = -blockYawError/(0.9/dist);// alex c, the closer the rover gets to the target, the less drastic it turns
       timeOut = false;
 
       return result;
     }
     else if (!lockTarget) //if a target hasn't been locked lock it and enter a counting state while slowly driving forward.
     {
+      
       lockTarget = true;
-      result.pd.cmdVel = 0.18;
+      result.pd.cmdVel = 0.2;
       result.pd.cmdAngularError= 0.0;
       timeOut = true;
       ignoreCenterSonar = true;
     }
-    else if (Td > raise_time_begin) //raise the wrist
+    else if (Td > check_time_begin)//Alex C
     {
       result.pd.cmdVel = -0.15;
       result.pd.cmdAngularError= 0.0;
-      result.wristAngle = 0;
+      result.fingerAngle = fingerAngleClose; // alex c
+      result.wristAngle = wristAngleUp;// do not raies wrist up all the way, so we can isolate the cube to the bottom half of the frame
+    }
+    else if (Td > raise_time_begin) //raise the wrist
+    {
+      result.pd.cmdVel = 0; // -0.15
+      result.pd.cmdAngularError= 0.0;
+      result.fingerAngle = fingerAngleClose; // alex c
+      result.wristAngle = wristAngleUp;// do not raies wrist up all the way, so we can isolate the cube to the bottom half of the frame
+      return result;
     }
     else if (Td > grasp_time_begin) //close the fingers and stop driving
     {
       result.pd.cmdVel = 0.0;
       result.pd.cmdAngularError= 0.0;
-      result.fingerAngle = 0;
-      return result;
+      result.fingerAngle = fingerAngleClose;
+      return result;  
     }
 
 
@@ -325,7 +424,7 @@ Result PickUpController::DoWork()
       result.pd.cmdAngularError= 0.0;
       //set gripper to open and down
       result.fingerAngle = M_PI_2;
-      result.wristAngle = 0;
+      result.wristAngle = wristAngleUp;
     }
 
     //if no targets are found after too long a period go back to search pattern
@@ -377,4 +476,57 @@ void PickUpController::SetUltraSoundData(bool blockBlock){
 void PickUpController::SetCurrentTimeInMilliSecs( long int time )
 {
   current_time = time;
+}
+
+void PickUpController::UpdateFrame(const cv::Mat image){
+  img = image.clone();
+}
+
+
+float te = 0;// alex c
+bool PickUpController::isHoldingCubeCV(){
+  int counter = 0;
+   
+  cv::Mat thresh = img.clone(); 
+  cv::Mat copy = img.clone(); 
+  cv::Mat edges;
+  //                          45
+  cv::threshold(thresh,thresh,15,255,CV_THRESH_BINARY); // set threshold to ignore small differences
+  // Edge detection
+  cv::Canny(thresh, edges, 50, 150, 3);
+   // Probabilistic Line Transform
+  vector<cv::Vec4i> linesP; // will hold the results of the detection
+  //   Mat of edges, output, ?,         ?, min num of intersections to detect a line, minLinLen, gap between line points 
+  HoughLinesP(edges, linesP, 1, CV_PI/180,                                        35,        40,                      4 ); // runs the actual detection
+  
+  
+  // Draw the lines
+  for( size_t i = 0; i < linesP.size(); i++ )
+  {
+    cv::Vec4i l = linesP[i];
+    //if( (l[0]+l[2])/2.0 < 320/2.0 && (l[1]+l[3])/2.0 > 240/2.0)
+    counter++;
+ 
+    cv::line( copy, cv::Point(l[0], l[1]), cv::Point(l[2], l[3]), cv::Scalar(0,255,0), 3, cv::LINE_AA);
+  }
+    
+    
+  /*
+  cv::imshow("edges",edges);
+  cv::imshow("copy",copy);
+  cv::imshow("Thresh",thresh);
+  cv::waitKey(1);
+  */
+    
+
+  
+  stringstream ss;
+  ss << "\nPickupController::isHoldingCubeCV" << "\n";
+  ss << "Counter = " << counter << "\n";
+  std_msgs::String msg;
+  msg.data = ss.str();
+  infoLogPublisher.publish(msg);
+
+  te = current_time;
+  return counter > 2;
 }

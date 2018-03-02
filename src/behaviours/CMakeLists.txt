@@ -12,10 +12,12 @@ find_package(catkin REQUIRED COMPONENTS
   tf
   apriltags_ros
   swarmie_msgs
+  cv_bridge
+  image_transport
   )
 
 catkin_package(
-  CATKIN_DEPENDS geometry_msgs swarmie_msgs roscpp sensor_msgs std_msgs random_numbers tf apriltags_ros
+  CATKIN_DEPENDS cv_bridge image_transport geometry_msgs swarmie_msgs roscpp sensor_msgs std_msgs random_numbers tf apriltags_ros
 )
 
 include_directories(

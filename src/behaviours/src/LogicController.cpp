@@ -332,6 +332,27 @@ void LogicController::SetCenterLocationOdom(Point centerLocationOdom)
   dropOffController.SetCenterLocation(centerLocationOdom);
 }
 
+string LogicController::GetProcessState() {
+  Controller* my_controller = control_queue.top().controller;
+  string state = string();
+
+  if (my_controller == &searchController) {
+    state = "Search";
+  } else if(my_controller == &obstacleController) {
+    state = "Avoid";
+  } else if(my_controller == &pickUpController) {
+    state = "Pickup";
+  } else if(my_controller == &range_controller) {
+    state = "Range";
+  } else if(my_controller == &dropOffController) {
+    state = "Dropoff";
+  } else if(my_controller == &manualWaypointController) {
+    state = "Manual";
+  }
+
+  return state;
+}
+
 void LogicController::AddManualWaypoint(Point manualWaypoint, int waypoint_id)
 {
   manualWaypointController.AddManualWaypoint(manualWaypoint, waypoint_id);
@@ -387,4 +408,11 @@ void LogicController::SetModeManual()
     control_queue = priority_queue<PrioritizedController>();
     driveController.Reset();
   }
+}
+
+// Alex
+void LogicController::SetCurrentFrame(const cv::Mat &image)
+{
+  img = image;
+  pickUpController.UpdateFrame(image);
 }

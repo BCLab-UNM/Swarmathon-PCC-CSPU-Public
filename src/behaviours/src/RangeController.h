@@ -107,7 +107,7 @@ class RangeControllerInvalidParameterException : public std::exception {
 // * In other words this controller
 // * implements a virtual fence.
 // *****************************************
-class RangeController : virtual Controller {
+class RangeController : public virtual Controller {
 
  public:
   // Constructors

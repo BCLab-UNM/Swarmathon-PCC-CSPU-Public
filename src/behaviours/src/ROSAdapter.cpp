@@ -23,6 +23,13 @@
 #include <std_msgs/Float32MultiArray.h>
 #include "swarmie_msgs/Waypoint.h"
 
+//OpenCV
+#include <opencv2/imgproc/imgproc.hpp>
+#include <opencv2/highgui/highgui.hpp>
+#include <opencv2/opencv.hpp>
+#include <image_transport/image_transport.h>
+#include <cv_bridge/cv_bridge.h>
+
 // Include Controllers
 #include "LogicController.h"
 #include <vector>
@@ -80,6 +87,27 @@ void resultHandler();
 Point updateCenterLocation();
 void transformMapCentertoOdom();
 
+//Blob Detection
+#define BLOB_DETECTION_COOL_DOWN_TIME 3.0
+#define BLOB_DETECTION_SLEEP_TIME 1.0
+struct blobParams {
+  blobParams() {
+  params.minThreshold = 10;
+  params.maxThreshold = 800;
+  params.filterByArea = true;
+  params.minArea = 800;
+  params.maxArea = 8000;
+  params.filterByCircularity = false;
+  params.filterByConvexity = false;
+  params.filterByInertia = false;
+  }
+
+  cv::SimpleBlobDetector::Params params;
+};
+blobParams blurryCubeBlobParameters;
+cv::Ptr<cv::SimpleBlobDetector> detector = cv::SimpleBlobDetector::create(blurryCubeBlobParameters.params);
+vector<cv::KeyPoint> keypoints;
+time_t blobDetectionCoolDownTimer;
 
 // Numeric Variables for rover positioning
 geometry_msgs::Pose2D currentLocation;
@@ -122,6 +150,7 @@ string publishedName;
 char prev_state_machine[128];
 
 // Publishers
+ros::Publisher debugPublisher;
 ros::Publisher stateMachinePublish;
 ros::Publisher status_publisher;
 ros::Publisher fingerAnglePublish;
@@ -154,7 +183,8 @@ time_t timerStartTime;
 
 // An initial delay to allow the rover to gather enough position data to 
 // average its location.
-unsigned int startDelayInSeconds = 30;
+// Alex C change
+unsigned int startDelayInSeconds = 0; //30
 float timerTimeElapsed = 0;
 
 //Transforms
@@ -163,7 +193,11 @@ tf::TransformListener *tfListener;
 // OS Signal Handler
 void sigintEventHandler(int signal);
 
+//Blob detection
+void detectBlurryCubes(cv::Mat &img);
+
 //Callback handlers
+void imageCallBack(const sensor_msgs::ImageConstPtr& msg);
 void joyCmdHandler(const sensor_msgs::Joy::ConstPtr& message);
 void modeHandler(const std_msgs::UInt8::ConstPtr& message);
 void targetHandler(const apriltags_ros::AprilTagDetectionArray::ConstPtr& tagInfo);
@@ -196,10 +230,12 @@ int main(int argc, char **argv) {
   // NoSignalHandler so we can catch SIGINT ourselves and shutdown the node
   ros::init(argc, argv, (publishedName + "_BEHAVIOUR"), ros::init_options::NoSigintHandler);
   ros::NodeHandle mNH;
+  image_transport::ImageTransport it(mNH);
   
   // Register the SIGINT event handler so the node can shutdown properly
   signal(SIGINT, sigintEventHandler);
-  
+  image_transport::Subscriber imgSub = it.subscribe(publishedName + 
+                                                    "/camera/image", 1, imageCallBack); 
   joySubscriber = mNH.subscribe((publishedName + "/joystick"), 10, joyCmdHandler);
   modeSubscriber = mNH.subscribe((publishedName + "/mode"), 1, modeHandler);
   targetSubscriber = mNH.subscribe((publishedName + "/targets"), 10, targetHandler);
@@ -211,6 +247,7 @@ int main(int argc, char **argv) {
   message_filters::Subscriber<sensor_msgs::Range> sonarCenterSubscriber(mNH, (publishedName + "/sonarCenter"), 10);
   message_filters::Subscriber<sensor_msgs::Range> sonarRightSubscriber(mNH, (publishedName + "/sonarRight"), 10);
   
+  debugPublisher = mNH.advertise<std_msgs::String>((publishedName + "/debug"), 1, true);
   status_publisher = mNH.advertise<std_msgs::String>((publishedName + "/status"), 1, true);
   stateMachinePublish = mNH.advertise<std_msgs::String>((publishedName + "/state_machine"), 1, true);
   fingerAnglePublish = mNH.advertise<std_msgs::Float32>((publishedName + "/fingerAngle/cmd"), 1, true);
@@ -246,8 +283,8 @@ int main(int argc, char **argv) {
     logicController.SetModeManual();
   }
 
-  timerStartTime = time(0);
-  
+  blobDetectionCoolDownTimer = timerStartTime = time(0);
+    
   ros::spin();
   
   return EXIT_SUCCESS;
@@ -426,6 +463,49 @@ void sendDriveCommand(double left, double right)
   driveControlPublish.publish(velocity);
 }
 
+void imageCallBack(const sensor_msgs::ImageConstPtr& msg) {
+  static cv_bridge::CvImagePtr imgPtr;
+  static cv::Mat matImg;
+
+  try {
+    imgPtr = cv_bridge::toCvCopy(msg);
+  } catch (cv_bridge::Exception& e) {
+    ROS_ERROR("Could not convert from '%s' to 'bgr8'.", msg->encoding.c_str());
+    return;
+  }
+
+  matImg = imgPtr->image;
+  cv::cvtColor(matImg, matImg, cv::COLOR_RGB2BGR);
+  // Alex
+  // allow pickup and other contorllers access to image
+  logicController.SetCurrentFrame(matImg);
+  
+  //detectBlurryCubes(matImg);
+
+}
+
+void detectBlurryCubes(cv::Mat &img)
+{
+    std_msgs::String debugMessage;
+    string process_state = logicController.GetProcessState();
+
+    detector->detect(img, keypoints);
+    //if not trying to pick up cube and blob detector is done cooling down then stop the rover for a second. Search mode is process state 0
+    if(process_state != "Search" && keypoints.size() &&
+      (time(0) - blobDetectionCoolDownTimer) >= BLOB_DETECTION_COOL_DOWN_TIME) {
+      debugMessage.data = "BLOB DETECTED!!!";
+      debugPublisher.publish(debugMessage);
+      sendDriveCommand(0.0,0.0);  
+      ros::Duration(BLOB_DETECTION_SLEEP_TIME).sleep();
+      blobDetectionCoolDownTimer = time(0);
+      }
+
+    debugMessage.data = process_state;
+    debugPublisher.publish(debugMessage);
+
+    return;
+}
+
 /*************************
  * ROS CALLBACK HANDLERS *
  *************************/
@@ -438,7 +518,7 @@ void targetHandler(const apriltags_ros::AprilTagDetectionArray::ConstPtr& messag
   { 
     return; 
   }
-
+  
   if (message->detections.size() > 0) {
     vector<Tag> tags;
 

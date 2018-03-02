@@ -10,6 +10,13 @@
 #include "RangeController.h"
 #include "ManualWaypointController.h"
 
+//OpenCV Alex C
+#include <opencv2/imgproc/imgproc.hpp>
+#include <opencv2/highgui/highgui.hpp>
+#include <opencv2/opencv.hpp>
+#include <image_transport/image_transport.h>
+#include <cv_bridge/cv_bridge.h>
+
 #include <vector>
 #include <queue>
 
@@ -20,6 +27,7 @@ struct PrioritizedController {
   Controller* controller = nullptr;
 
   PrioritizedController(int pri, Controller* cntrl) : priority(pri), controller(cntrl) {}
+  
 
   inline bool operator <(const PrioritizedController& other) const {
     return priority < other.priority;
@@ -46,8 +54,12 @@ public:
   void SetMapVelocityData(float linearVelocity, float angularVelocity);
   void SetCenterLocationOdom(Point centerLocationOdom);
   void SetCenterLocationMap(Point centerLocationMap);
-
   
+  // Alex C
+  void SetCurrentFrame(const cv::Mat &img);
+  
+  string GetProcessState();
+
   // Passthrough for providing new waypoints to the
   // ManualWaypointController.
   void AddManualWaypoint(Point wpt, int waypoint_id);
@@ -121,8 +133,12 @@ private:
   priority_queue<PrioritizedController> control_queue;
 
   void controllerInterconnect();
+  
 
   long int current_time = 0;
+
+  // Alex C
+  cv::Mat img;
 };
 
 #endif // LOGICCONTROLLER_H
