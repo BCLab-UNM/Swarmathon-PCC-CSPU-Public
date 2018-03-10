@@ -17,19 +17,20 @@ extern ros::Publisher fingerAnglePublish;
 */
 
 int secondAdder = 2;//-2
+float pickupTimerOffset = 0.3; //This is the amount of extra time the simulation needs to pick up the cube correctly (0.3). TODO: This value should be set to (-0.3) for the phisical rover pickup
 
 float fingerAngleOpen = M_PI_2;//M_PI_2
 float fingerAngleClose = 0;//0
 float wristAngleDown = 1; // optimal angle for picking up the center of the cube (1.25 is all the way down)
 float wristAngleUp = 0;//how for up the wrist is in order to check contains cube cv (0.0 is all the way up) // 0.6
 
-float grasp_time_begin = 1.1;
-float raise_time_begin = 2.0;
-float check_time_begin = 5+secondAdder; // Alex C
-float lower_gripper_time_begin = 7.0+secondAdder;//4.0
-float target_reaquire_begin= 7.2+secondAdder;//4.2
-float target_pickup_task_time_limit = 8.0+secondAdder;//4.8//7.8
-int global_counter = 0;
+float grasp_time_begin = 1.1 + pickupTimerOffset;
+float raise_time_begin = 2.0 + pickupTimerOffset;
+float check_time_begin = 5+secondAdder + pickupTimerOffset; // Alex C
+float lower_gripper_time_begin = 7.0+secondAdder + pickupTimerOffset;//4.0
+float target_reaquire_begin= 7.2+secondAdder + pickupTimerOffset;//4.2
+float target_pickup_task_time_limit = 8.0+secondAdder + pickupTimerOffset;//4.8//7.8
+
 
 float last_rotation_before_being_lost = 1;
 
@@ -180,23 +181,17 @@ void PickUpController::ProcessData()
   infoLogPublisher.publish(msg);
 
 
-
-  //if(isHoldingCubeCV())global_counter++;
-          //Td < 4.9 &&(blockDistanceFromCamera < 0.14 || (Td > 4 && isHoldingCubeCV()))          4.9
-  if ((Td < target_pickup_task_time_limit + 0.1 && blockDistanceFromCamera < 0.14) || global_counter > 10)
-  //if (global_counter > 10)
+  if ((Td < target_pickup_task_time_limit + 0.1 && blockDistanceFromCamera < 0.14))
   {
     result.type = behavior;
     result.b = nextProcess;
     result.reset = true;
     targetHeld = true;
-    global_counter = 0;
+
   }
   //Lower wrist and open fingures if no locked target
   else if (!lockTarget )
   {
-    // Alex C
-    if(Td > lower_gripper_time_begin){global_counter=0;}
 
     //set gripper;
     result.fingerAngle = M_PI_2;
@@ -482,51 +477,3 @@ void PickUpController::UpdateFrame(const cv::Mat image){
   img = image.clone();
 }
 
-
-float te = 0;// alex c
-bool PickUpController::isHoldingCubeCV(){
-  int counter = 0;
-   
-  cv::Mat thresh = img.clone(); 
-  cv::Mat copy = img.clone(); 
-  cv::Mat edges;
-  //                          45
-  cv::threshold(thresh,thresh,15,255,CV_THRESH_BINARY); // set threshold to ignore small differences
-  // Edge detection
-  cv::Canny(thresh, edges, 50, 150, 3);
-   // Probabilistic Line Transform
-  vector<cv::Vec4i> linesP; // will hold the results of the detection
-  //   Mat of edges, output, ?,         ?, min num of intersections to detect a line, minLinLen, gap between line points 
-  HoughLinesP(edges, linesP, 1, CV_PI/180,                                        35,        40,                      4 ); // runs the actual detection
-  
-  
-  // Draw the lines
-  for( size_t i = 0; i < linesP.size(); i++ )
-  {
-    cv::Vec4i l = linesP[i];
-    //if( (l[0]+l[2])/2.0 < 320/2.0 && (l[1]+l[3])/2.0 > 240/2.0)
-    counter++;
- 
-    cv::line( copy, cv::Point(l[0], l[1]), cv::Point(l[2], l[3]), cv::Scalar(0,255,0), 3, cv::LINE_AA);
-  }
-    
-    
-  /*
-  cv::imshow("edges",edges);
-  cv::imshow("copy",copy);
-  cv::imshow("Thresh",thresh);
-  cv::waitKey(1);
-  */
-    
-
-  
-  stringstream ss;
-  ss << "\nPickupController::isHoldingCubeCV" << "\n";
-  ss << "Counter = " << counter << "\n";
-  std_msgs::String msg;
-  msg.data = ss.str();
-  infoLogPublisher.publish(msg);
-
-  te = current_time;
-  return counter > 2;
-}

@@ -6,6 +6,13 @@
 #include "Tag.h"
 #include <math.h>
 
+//OpenCV Alex C
+#include <opencv2/imgproc/imgproc.hpp>
+#include <opencv2/highgui/highgui.hpp>
+#include <opencv2/opencv.hpp>
+#include <image_transport/image_transport.h>
+#include <cv_bridge/cv_bridge.h>
+
 class DropOffController : public virtual Controller
 {
 public:
@@ -30,6 +37,9 @@ public:
   void UpdateData(vector<Tag> tags);
 
   void SetCurrentTimeInMilliSecs( long int time );
+
+    // Alex C
+  void UpdateFrame(const cv::Mat img);
 
 private:
 
@@ -119,6 +129,10 @@ private:
   bool precisionInterrupt = false;
   bool finalInterrupt = false;
   bool first_center = true;
+
+  // Alex C
+  cv::Mat img;
+  void ProcessImage();
 
 };
 #endif // end header define

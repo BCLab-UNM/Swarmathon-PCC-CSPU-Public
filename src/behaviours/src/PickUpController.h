@@ -89,7 +89,6 @@ private:
 
   // Alex C
   cv::Mat img;
-  bool isHoldingCubeCV();
   
 };
 

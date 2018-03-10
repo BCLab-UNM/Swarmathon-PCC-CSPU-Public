@@ -415,4 +415,5 @@ void LogicController::SetCurrentFrame(const cv::Mat &image)
 {
   img = image;
   pickUpController.UpdateFrame(image);
+  dropOffController.UpdateFrame(image);
 }

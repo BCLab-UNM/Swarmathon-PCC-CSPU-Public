@@ -314,7 +314,99 @@ void DropOffController::SetTargetData(vector<Tag> tags) {
 
 }
 
+// Alex C uses opencv to help locate the home base
+void DropOffController::ProcessImage(){
+
+  if(img.data == NULL)
+  {
+    return;
+  }
+
+  int morph_operation = 3;
+  int morph_size = 10;
+  int morph_element = 2;
+
+  int blur_factor = 3;
+
+  int thresh = 225;
+
+  cv::Mat morph, morph_gray, blur, threshold;
+  
+  cv::Mat element = getStructuringElement(morph_element, cv::Size(2*morph_size+1, 2*morph_size+1), cv::Point(morph_size, morph_size));
+  
+  // erode and dilate image
+  cv::morphologyEx(img, morph, morph_operation, element);
+
+  // morphologyEx will output an image with color
+  cv::cvtColor(morph, morph_gray, CV_BGR2GRAY);
+
+  cv::blur(morph_gray, blur, cv::Size(blur_factor,blur_factor));
+
+  cv::threshold(blur,threshold, thresh, 255, cv::THRESH_BINARY);
+
+
+  vector<vector<cv::Point> > contours;
+  vector<cv::Vec4i> hierarchy;
+
+  cv::findContours(threshold, contours, hierarchy, CV_RETR_TREE, CV_CHAIN_APPROX_SIMPLE, cv::Point(0,0) );
+  
+  // get moments - this is just to get every object detected on the image based on the contours
+  vector<cv::Moments> mu( contours.size() );
+  for( int i = 0; i < contours.size(); i++ )
+  {
+    mu[i] = cv::moments( contours[i], false); 
+  }
+
+  // get mass center (the area of the objects detected)
+  vector<cv::Point2f> mc( contours.size() );
+  for( int i = 0; i < contours.size(); i++ )
+  {
+    mc[i] = cv::Point2f(mu[i].m10/mu[i].m00 , mu[i].m01/mu[i].m00 ); 
+  }
+
+  // draw contours
+  cv::Mat drawing = cv::Mat::zeros( threshold.size(), CV_8UC3 );
+  // draw each object detected with different colors
+  for( int i = 0; i < contours.size(); i++ )
+  {
+    stringstream text;
+    text << mu[i].m00;
+
+    
+    // if the area of the contours is greater than 6000 (arbitrary number to make sure we are looking at home base)
+    if( mu[i].m00 > 6000 )
+    {
+      int b,g,r;
+      b = rand()%256;
+      g = rand()%256;  
+      r = rand()%256;
+      
+      cv::drawContours( drawing, contours, i, cv::Scalar(b,g,r), 2, 8, hierarchy, 0, cv::Point(0,0) );
+      cv::circle(drawing, mc[i], 4, cv::Scalar(255-b,255-g,255-r), -1, 8, 0 );
+      cv::putText(drawing, text.str(), cv::Point(mc[i].x,mc[i].y), cv::FONT_HERSHEY_PLAIN, 1, cv::Scalar(255,255,255));
+      cv::putText(drawing, "Home Base", cv::Point(mc[i].x,mc[i].y+20), cv::FONT_HERSHEY_PLAIN, 1, cv::Scalar(255,255,255));
+    }
+    else
+    {
+      cv::drawContours( drawing, contours, i, cv::Scalar(0,255,0), 2, 8, hierarchy, 0, cv::Point(0,0) );
+      cv::circle(drawing, mc[i], 4, cv::Scalar(255,0,0), -1, 8, 0 );
+      cv::putText(drawing, text.str(), cv::Point(mc[i].x,mc[i].y), cv::FONT_HERSHEY_PLAIN, 1, cv::Scalar(255,255,255));
+    }
+  }
+
+  
+  cv::imshow("ProcessImage::morph",morph);
+  cv::imshow("ProcessImage::drawing",drawing);
+  cv::imshow("ProcessImage::raw",img);
+  cv::waitKey(1);
+
+}
+
+
 void DropOffController::ProcessData() {
+  ProcessImage();
+  
+
   if((countLeft + countRight) > 0) {
     isPrecisionDriving = true;
   } else {
@@ -375,4 +467,9 @@ void DropOffController::SetBlockBlockingUltrasound(bool blockBlock) {
 void DropOffController::SetCurrentTimeInMilliSecs( long int time )
 {
   current_time = time;
+}
+
+// Alex c
+void DropOffController::UpdateFrame(const cv::Mat image){
+  img = image.clone();
 }
