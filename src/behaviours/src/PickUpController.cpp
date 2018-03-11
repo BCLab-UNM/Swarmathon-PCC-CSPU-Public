@@ -16,8 +16,8 @@ extern ros::Publisher fingerAnglePublish;
   result.wristAngle = M_PI/4;
 */
 
-int secondAdder = 2;//-2
-float pickupTimerOffset = 0.3; //This is the amount of extra time the simulation needs to pick up the cube correctly (0.3). TODO: This value should be set to (-0.3) for the phisical rover pickup
+int secondAdder = -2;//-2
+float pickupTimerOffset = -0.3; //This is the amount of extra time the simulation needs to pick up the cube correctly (0.3). TODO: This value should be set to (-0.3) for the phisical rover pickup
 
 float fingerAngleOpen = M_PI_2;//M_PI_2
 float fingerAngleClose = 0;//0
@@ -150,6 +150,7 @@ bool PickUpController::SetSonarData(float rangeCenter)
 
 }
 
+int frame_counter = 0;
 
 void PickUpController::ProcessData()
 {
@@ -180,8 +181,12 @@ void PickUpController::ProcessData()
   msg.data = ss.str();
   infoLogPublisher.publish(msg);
 
+  
+  if(ProcessImage())
+    frame_counter ++;
 
-  if ((Td < target_pickup_task_time_limit + 0.1 && blockDistanceFromCamera < 0.14))
+  //if ((Td < target_pickup_task_time_limit + 0.1 && blockDistanceFromCamera < 0.14))
+  if(frame_counter > 15)
   {
     result.type = behavior;
     result.b = nextProcess;
@@ -193,11 +198,106 @@ void PickUpController::ProcessData()
   else if (!lockTarget )
   {
 
+    frame_counter = 0;
+
     //set gripper;
     result.fingerAngle = M_PI_2;
     result.wristAngle = wristAngleDown;//1.25
   }
 
+}
+
+// Alex C uses opencv to help locate the home base
+bool PickUpController::ProcessImage(){
+
+  if(img.data == NULL)
+  {
+    return false;
+  }
+
+  bool return_me = false;
+
+  int morph_operation = 3;
+  int morph_size = 10;
+  int morph_element = 2;
+
+  int blur_factor = 3;
+
+  int thresh = 225;
+
+  cv::Mat morph, morph_gray, blur, threshold;
+  
+  cv::Mat element = getStructuringElement(morph_element, cv::Size(2*morph_size+1, 2*morph_size+1), cv::Point(morph_size, morph_size));
+  
+  // erode and dilate image
+  cv::morphologyEx(img, morph, morph_operation, element);
+
+  // morphologyEx will output an image with color
+  cv::cvtColor(morph, morph_gray, CV_BGR2GRAY);
+
+  cv::blur(morph_gray, blur, cv::Size(blur_factor,blur_factor));
+
+  cv::threshold(blur,threshold, thresh, 255, cv::THRESH_BINARY);
+
+
+  vector<vector<cv::Point> > contours;
+  vector<cv::Vec4i> hierarchy;
+
+  cv::findContours(threshold, contours, hierarchy, CV_RETR_TREE, CV_CHAIN_APPROX_SIMPLE, cv::Point(0,0) );
+  
+  // get moments - this is just to get every object detected on the image based on the contours
+  vector<cv::Moments> mu( contours.size() );
+  for( int i = 0; i < contours.size(); i++ )
+  {
+    mu[i] = cv::moments( contours[i], false); 
+  }
+
+  // get mass center (the area of the objects detected)
+  vector<cv::Point2f> mc( contours.size() );
+  for( int i = 0; i < contours.size(); i++ )
+  {
+    mc[i] = cv::Point2f(mu[i].m10/mu[i].m00 , mu[i].m01/mu[i].m00 ); 
+  }
+
+  // draw contours
+  cv::Mat drawing = cv::Mat::zeros( threshold.size(), CV_8UC3 );
+  // draw each object detected with different colors
+  for( int i = 0; i < contours.size(); i++ )
+  {
+    stringstream text;
+    text << mu[i].m00;
+
+    
+    // if the area of the contours is greater than 6000 (arbitrary number to make sure we are looking at home base)
+    if( mu[i].m00 > 6000 )
+    {
+      int b,g,r;
+      b = rand()%256;
+      g = rand()%256;  
+      r = rand()%256;
+      
+      cv::drawContours( drawing, contours, i, cv::Scalar(b,g,r), 2, 8, hierarchy, 0, cv::Point(0,0) );
+      cv::circle(drawing, mc[i], 4, cv::Scalar(255-b,255-g,255-r), -1, 8, 0 );
+      cv::putText(drawing, text.str(), cv::Point(mc[i].x,mc[i].y), cv::FONT_HERSHEY_PLAIN, 1, cv::Scalar(255,255,255));
+      cv::putText(drawing, "Holding Cube", cv::Point(mc[i].x,mc[i].y+20), cv::FONT_HERSHEY_PLAIN, 1, cv::Scalar(255,255,255));
+
+      return_me = true;
+    }
+    else
+    {
+      cv::drawContours( drawing, contours, i, cv::Scalar(0,255,0), 2, 8, hierarchy, 0, cv::Point(0,0) );
+      cv::circle(drawing, mc[i], 4, cv::Scalar(255,0,0), -1, 8, 0 );
+      cv::putText(drawing, text.str(), cv::Point(mc[i].x,mc[i].y), cv::FONT_HERSHEY_PLAIN, 1, cv::Scalar(255,255,255));
+    }
+  }
+
+  
+  cv::imshow("ProcessImage::morph",morph);
+  cv::imshow("ProcessImage::drawing",drawing);
+  cv::imshow("ProcessImage::raw",img);
+  cv::waitKey(1);
+  
+  return return_me;
 }
 
 
@@ -334,7 +434,7 @@ Result PickUpController::DoWork()
         {
           // The rover will slowly go towards the cube's last position
           result.pd.cmdVel = 0.05;// -0.15 Alex C
-          result.pd.cmdAngularError = 0; //  Alex C // 0  
+          result.pd.cmdAngularError = -blockYawError/2.0; //  Alex C // 0  
         }
         else
         {
