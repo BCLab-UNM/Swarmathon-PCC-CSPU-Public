@@ -16,8 +16,8 @@ extern ros::Publisher fingerAnglePublish;
   result.wristAngle = M_PI/4;
 */
 
-int secondAdder = -2;//-2
-float pickupTimerOffset = -0.3; //This is the amount of extra time the simulation needs to pick up the cube correctly (0.3). TODO: This value should be set to (-0.3) for the phisical rover pickup
+int secondAdder = 2;//-2
+float pickupTimerOffset = 0.4; //This is the amount of extra time the simulation needs to pick up the cube correctly (0.4). TODO: This value should be set to (-0.3) for the phisical rover pickup
 
 float fingerAngleOpen = M_PI_2;//M_PI_2
 float fingerAngleClose = 0;//0
@@ -269,7 +269,7 @@ bool PickUpController::ProcessImage(){
 
     
     // if the area of the contours is greater than 6000 (arbitrary number to make sure we are looking at home base)
-    if( mu[i].m00 > 6000 )
+    if( mu[i].m00 > 10000 )
     {
       int b,g,r;
       b = rand()%256;
@@ -413,7 +413,7 @@ Result PickUpController::DoWork()
       if(!timeOut)
       {
         result.pd.cmdVel = 0.0;
-        if(last_rotation_before_being_lost == 0){ last_rotation_before_being_lost = 0.00001; } // make sure not dividng by 0
+        if(last_rotation_before_being_lost == 0){ last_rotation_before_being_lost =  blockYawError/2.0;} // make sure not dividng by 0
         float newAngle = -0.1 * (last_rotation_before_being_lost / fabs(last_rotation_before_being_lost) ); 
 
         // 0.1 * (-blockYawError / abs(blockYawError) ); // turn at an anglular speed of 0.1 in the direction of the last seen spot of the cube
