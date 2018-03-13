@@ -16,8 +16,8 @@ extern ros::Publisher fingerAnglePublish;
   result.wristAngle = M_PI/4;
 */
 
-int secondAdder = 2;//-2
-float pickupTimerOffset = 0.4; //This is the amount of extra time the simulation needs to pick up the cube correctly (0.4). TODO: This value should be set to (-0.3) for the phisical rover pickup
+int secondAdder = -2;//-2
+float pickupTimerOffset = -0.4; //This is the amount of extra time the simulation needs to pick up the cube correctly (0.4). TODO: This value should be set to (-0.3) for the phisical rover pickup
 
 float fingerAngleOpen = M_PI_2;//M_PI_2
 float fingerAngleClose = 0;//0
@@ -134,6 +134,7 @@ void PickUpController::SetTagData(vector<Tag> tags)
 }
 
 
+int frame_counter = 0;
 bool PickUpController::SetSonarData(float rangeCenter)
 {
 
@@ -150,7 +151,7 @@ bool PickUpController::SetSonarData(float rangeCenter)
 
 }
 
-int frame_counter = 0;
+int frame_write_counter = 0;
 
 void PickUpController::ProcessData()
 {
@@ -182,11 +183,11 @@ void PickUpController::ProcessData()
   infoLogPublisher.publish(msg);
 
   
-  if(ProcessImage())
+  if(Td > check_time_begin && Td < lower_gripper_time_begin && ProcessImage())
     frame_counter ++;
 
   //if ((Td < target_pickup_task_time_limit + 0.1 && blockDistanceFromCamera < 0.14))
-  if(frame_counter > 15)
+  if(frame_counter > 8)
   {
     result.type = behavior;
     result.b = nextProcess;
@@ -215,6 +216,9 @@ bool PickUpController::ProcessImage(){
     return false;
   }
 
+  stringstream ss;
+  ss << "\nPickupController::ProcessImage" << "\n";
+
   bool return_me = false;
 
   int morph_operation = 3;
@@ -223,7 +227,7 @@ bool PickUpController::ProcessImage(){
 
   int blur_factor = 3;
 
-  int thresh = 225;
+  int thresh = 185; // 225
 
   cv::Mat morph, morph_gray, blur, threshold;
   
@@ -266,10 +270,11 @@ bool PickUpController::ProcessImage(){
   {
     stringstream text;
     text << mu[i].m00;
-
+    
+    ss << "Area = " << mu[i].m00 << "\n";
     
     // if the area of the contours is greater than 6000 (arbitrary number to make sure we are looking at home base)
-    if( mu[i].m00 > 10000 )
+    if( mu[i].m00 > 8000 )
     {
       int b,g,r;
       b = rand()%256;
@@ -279,9 +284,17 @@ bool PickUpController::ProcessImage(){
       cv::drawContours( drawing, contours, i, cv::Scalar(b,g,r), 2, 8, hierarchy, 0, cv::Point(0,0) );
       cv::circle(drawing, mc[i], 4, cv::Scalar(255-b,255-g,255-r), -1, 8, 0 );
       cv::putText(drawing, text.str(), cv::Point(mc[i].x,mc[i].y), cv::FONT_HERSHEY_PLAIN, 1, cv::Scalar(255,255,255));
-      cv::putText(drawing, "Holding Cube", cv::Point(mc[i].x,mc[i].y+20), cv::FONT_HERSHEY_PLAIN, 1, cv::Scalar(255,255,255));
 
-      return_me = true;
+      if(mc[i].y < 240/2.0)
+      {
+        cv::putText(drawing, "Not A Cube", cv::Point(mc[i].x,mc[i].y+20), cv::FONT_HERSHEY_PLAIN, 1, cv::Scalar(255,255,255));
+      }
+      else
+      {
+        cv::putText(drawing, "Cube", cv::Point(mc[i].x,mc[i].y+20), cv::FONT_HERSHEY_PLAIN, 1, cv::Scalar(255,255,255));
+        return_me = true;
+      }
+      
     }
     else
     {
@@ -291,11 +304,30 @@ bool PickUpController::ProcessImage(){
     }
   }
 
-  
+
+  std_msgs::String msg;
+  msg.data = ss.str();
+  infoLogPublisher.publish(msg);
+
+  /*
   cv::imshow("ProcessImage::morph",morph);
   cv::imshow("ProcessImage::drawing",drawing);
   cv::imshow("ProcessImage::raw",img);
   cv::waitKey(1);
+  */
+
+  frame_write_counter++;
+  stringstream dPath;
+  dPath << "../tempImages/drawing"<<frame_write_counter<<".jpg";
+  stringstream iPath;
+  iPath << "../tempImages/img"<<frame_write_counter<<".jpg";
+  stringstream mPath;
+  mPath << "../tempImages/morph"<<frame_write_counter<<".jpg";
+
+  cv::imwrite(dPath.str(),drawing);
+  cv::imwrite(iPath.str(),img);
+  cv::imwrite(mPath.str(),morph);
+
   
   return return_me;
 }
@@ -350,7 +382,7 @@ Result PickUpController::DoWork()
   {
 
     //threshold distance to be from the target block before attempting pickup
-    float targetDistance = 0.15; //meters
+    float targetDistance = 0.2; // 0.15//meters
 
     // -----------------------------------------------------------
     // millisecond time = current time if not in a counting state
