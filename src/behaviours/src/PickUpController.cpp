@@ -190,8 +190,8 @@ void PickUpController::ProcessData()
   if(Td > check_time_begin && Td < lower_gripper_time_begin && ProcessImage())
     frame_counter ++;
 
-  //if ((Td < target_pickup_task_time_limit + 0.1 && blockDistanceFromCamera < 0.14) || frame_counter > 8)
-  if(frame_counter > 8)
+  if ((Td < target_pickup_task_time_limit + 0.1 && blockDistanceFromCamera < 0.14) || frame_counter > 8)
+  //if(frame_counter > 8)
   {
     frame_counter = 0;
     result.type = behavior;

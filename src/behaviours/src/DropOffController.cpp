@@ -124,7 +124,19 @@ Result DropOffController::DoWork() {
   bool left = (countLeft > 0);
   bool right = (countRight > 0);
   bool centerSeen = (right || left);
-
+  
+  /*
+  //if(centerSeen == false)
+  //{
+    if(cv_see_home == true)
+    {
+      result.type = precisionDriving;
+      result.pd.cmdVel = 0;
+      return result;
+    } 
+ 
+  //}
+  */
   //reset lastCenterTagThresholdTime timout timer to current time
   if ((!centerApproach && !seenEnoughCenterTags) || (count > 0 && !seenEnoughCenterTags)) {
 
@@ -235,6 +247,7 @@ Result DropOffController::DoWork() {
       isPrecisionDriving = false;
       interrupt = false;
       precisionInterrupt = false;
+      
     }
     else
     {
@@ -316,7 +329,7 @@ void DropOffController::SetTargetData(vector<Tag> tags) {
 
 // Alex C uses opencv to help locate the home base
 void DropOffController::ProcessImage(){
-
+  cv_see_home = false;
   if(img.data == NULL)
   {
     return;
@@ -374,7 +387,7 @@ void DropOffController::ProcessImage(){
 
     
     // if the area of the contours is greater than 6000 (arbitrary number to make sure we are looking at home base)
-    if( mu[i].m00 > 6000 )
+    if( mu[i].m00 > 3000 && mc[i].y < 240/2.0)
     {
       int b,g,r;
       b = rand()%256;
@@ -385,6 +398,7 @@ void DropOffController::ProcessImage(){
       cv::circle(drawing, mc[i], 4, cv::Scalar(255-b,255-g,255-r), -1, 8, 0 );
       cv::putText(drawing, text.str(), cv::Point(mc[i].x,mc[i].y), cv::FONT_HERSHEY_PLAIN, 1, cv::Scalar(255,255,255));
       cv::putText(drawing, "Home Base", cv::Point(mc[i].x,mc[i].y+20), cv::FONT_HERSHEY_PLAIN, 1, cv::Scalar(255,255,255));
+      cv_see_home = true;
     }
     else
     {
@@ -394,12 +408,12 @@ void DropOffController::ProcessImage(){
     }
   }
 
-  /*
+  
   cv::imshow("ProcessImage::morph",morph);
   cv::imshow("ProcessImage::drawing",drawing);
   cv::imshow("ProcessImage::raw",img);
   cv::waitKey(1);
-  */
+  
 }
 
 

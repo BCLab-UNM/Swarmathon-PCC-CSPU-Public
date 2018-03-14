@@ -133,6 +133,7 @@ private:
   // Alex C
   cv::Mat img;
   void ProcessImage();
+  bool cv_see_home = false;
 
 };
 #endif // end header define
