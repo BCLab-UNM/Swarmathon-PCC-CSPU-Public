@@ -2,6 +2,8 @@
 #include <limits> // For numeric limits
 #include <cmath> // For hypot
 
+
+// TODO: Remove these includes and remove all debugging messages
 // for debugging 
 #include <ros/ros.h>
 #include <sstream>
@@ -9,30 +11,33 @@
 extern ros::Publisher infoLogPublisher;
 extern ros::Publisher fingerAnglePublish;
 
-/*
+/* NOTES
   search controller constructor
-
   result.fingerAngle = M_PI/2;
   result.wristAngle = M_PI/4;
 */
 
-int secondAdder = -2;//-2
-float pickupTimerOffset = -0.4; //This is the amount of extra time the simulation needs to pick up the cube correctly (0.4). TODO: This value should be set to (-0.3) for the phisical rover pickup
+int closeClawOffsetSim 			= 2; // TODO: Set this value to 0, this is only for simulation.  //2
+float extraTimeOffsetSim 		= 1.3; //TODO: Set this value to 0. this is only for simulation.  //1.3
 
-float fingerAngleOpen = M_PI_2;//M_PI_2
-float fingerAngleClose = 0;//0
-float wristAngleDown = 1; // optimal angle for picking up the center of the cube (1.25 is all the way down)
-float wristAngleUp = 0;//how for up the wrist is in order to check contains cube cv (0.0 is all the way up) // 0.6
+float fingerAngleOpen		 	= M_PI_2;
+float fingerAngleClose 			= 0;
+float wristAngleDown 			= 1; // optimal angle for picking up cube from the center (1.25 is all the way down)
+float wristAngleUp 			= 0; //wrist angle all the way up
 
-float grasp_time_begin = 1.1 + pickupTimerOffset;
-float raise_time_begin = 2.0 + pickupTimerOffset;
-float check_time_begin = 5+secondAdder + pickupTimerOffset; // Alex C
-float lower_gripper_time_begin = 7.0+secondAdder + pickupTimerOffset;//4.0
-float target_reaquire_begin= 7.2+secondAdder + pickupTimerOffset;//4.2
-float target_pickup_task_time_limit = 8.0+secondAdder + pickupTimerOffset;//4.8//7.8
+float grasp_time_begin 			= 0.7 + extraTimeOffsetSim;
+float raise_time_begin 			= 1.6 + extraTimeOffsetSim;
+float check_time_begin 			= 2.6 + closeClawOffsetSim + extraTimeOffsetSim; 
+float lower_gripper_time_begin 		= 4.6 + closeClawOffsetSim + extraTimeOffsetSim;
+float target_reaquire_begin		= 4.8 + closeClawOffsetSim + extraTimeOffsetSim;
+float target_pickup_task_time_limit 	= 5.6 + closeClawOffsetSim + extraTimeOffsetSim;
 
 
-float last_rotation_before_being_lost = 1;
+float last_rotation_before_being_lost = 0; // this variable keeps track of the rotation of the rover the instant it loses track of the cube,
+					   // (it is useful to rotate the rover the opposite direction when the cube is lost)
+
+int frame_counter = 0; // This variable keeps track of the number of frames that the rover thinks the cube is in, using only opencv
+int frame_write_counter = 0; // TODO: Remove this variable, this is only for debugging the filtered frames.
 
 PickUpController::PickUpController()
 {
@@ -50,6 +55,9 @@ PickUpController::PickUpController()
   result.fingerAngle = -1;
   result.wristAngle = -1;
   result.PIDMode = SLOW_PID;
+
+  frame_counter = 0;
+  last_rotation_before_being_lost = 0;
 }
 
 PickUpController::~PickUpController() { /*Destructor*/  }
@@ -133,8 +141,6 @@ void PickUpController::SetTagData(vector<Tag> tags)
 
 }
 
-
-int frame_counter = 0;
 bool PickUpController::SetSonarData(float rangeCenter)
 {
 
@@ -150,8 +156,6 @@ bool PickUpController::SetSonarData(float rangeCenter)
   return false;
 
 }
-
-int frame_write_counter = 0;
 
 void PickUpController::ProcessData()
 {
@@ -186,9 +190,10 @@ void PickUpController::ProcessData()
   if(Td > check_time_begin && Td < lower_gripper_time_begin && ProcessImage())
     frame_counter ++;
 
-  //if ((Td < target_pickup_task_time_limit + 0.1 && blockDistanceFromCamera < 0.14))
+  //if ((Td < target_pickup_task_time_limit + 0.1 && blockDistanceFromCamera < 0.14) || frame_counter > 8)
   if(frame_counter > 8)
   {
+    frame_counter = 0;
     result.type = behavior;
     result.b = nextProcess;
     result.reset = true;
@@ -315,7 +320,9 @@ bool PickUpController::ProcessImage(){
   cv::imshow("ProcessImage::raw",img);
   cv::waitKey(1);
   */
+ 
 
+  /*
   frame_write_counter++;
   stringstream dPath;
   dPath << "../tempImages/drawing"<<frame_write_counter<<".jpg";
@@ -327,7 +334,7 @@ bool PickUpController::ProcessImage(){
   cv::imwrite(dPath.str(),drawing);
   cv::imwrite(iPath.str(),img);
   cv::imwrite(mPath.str(),morph);
-
+  */
   
   return return_me;
 }
@@ -362,10 +369,6 @@ bool PickUpController::ShouldInterrupt(){
   }
 }
 
-int currentPickUpState = 0; 
-const int PICKUP_STATE_MOVE_FORWARD = 0;// cube is visible but not locked on, Move forward, adjusting the angle
-const int PICKUP_STATE_MOVE_BACKWARD = 1;// cube is visible but rover is too close and not lined up correctly, needs to back up
-const int PICKUP_STATE_RELOCATE = 2;// lost sight of cube, 
 
 Result PickUpController::DoWork()
 {
@@ -373,8 +376,6 @@ Result PickUpController::DoWork()
   // alex c Debug
   stringstream ss;
   ss << "\nPickupController::DoWork" << "\n";
-
-  
 
   has_control = true;
   
@@ -438,18 +439,15 @@ Result PickUpController::DoWork()
         nTargetsSeen = 0;
     }
 
-    
+    // first line of defence, stand still
     if (nTargetsSeen == 0 && !lockTarget)
     {
       // This if statement causes us to time out if we don't re-aquire a block within the time limit.
       if(!timeOut)
       {
         result.pd.cmdVel = 0.0;
-        if(last_rotation_before_being_lost == 0){ last_rotation_before_being_lost =  blockYawError/2.0;} // make sure not dividng by 0
-        float newAngle = -0.1 * (last_rotation_before_being_lost / fabs(last_rotation_before_being_lost) ); 
+        result.pd.cmdAngularError= 0;
 
-        // 0.1 * (-blockYawError / abs(blockYawError) ); // turn at an anglular speed of 0.1 in the direction of the last seen spot of the cube
-        result.pd.cmdAngularError= newAngle; // -blockYawError
         result.wristAngle = wristAngleDown; //1.25
         // result.fingerAngle does not need to be set here
 
@@ -458,22 +456,51 @@ Result PickUpController::DoWork()
         timeOut = true;
 
       }
-      //If in a counting state and has been counting for 1 second.
-      //          > 1.0
-      else if (Td > 1.0 && Td < target_pickup_task_time_limit)
+      // second line of defence, look in the opposite direction that the rover was turning before it lost sight of cube
+      else if (Td > 0.7 && Td < 2.0)
       {
         if(blockDistance > 0.35)
         {
           // The rover will slowly go towards the cube's last position
           result.pd.cmdVel = 0.05;// -0.15 Alex C
-          result.pd.cmdAngularError = -blockYawError/2.0; //  Alex C // 0  
         }
         else
         {
           // The rover will reverse angling towards the direction of the last seen cube.
           result.pd.cmdVel = -0.05;// -0.15 Alex C
-          result.pd.cmdAngularError = -blockYawError/2.0; //  Alex C // 0  
         }
+
+        if(blockYawError != 0) 
+        {
+
+          if(last_rotation_before_being_lost == 0)// make sure not dividng by 0
+          {
+            last_rotation_before_being_lost =  blockYawError/2.0;
+          } 
+
+          float newAngle = -0.07 * (last_rotation_before_being_lost / fabs(last_rotation_before_being_lost) ); // basically turn towards the opposite direction of what the rover 
+													     // was turning at when it lost sight of the cube at a rotational speed of 0.07.
+
+          // 0.1 * (-blockYawError / abs(blockYawError) ); // turn at an anglular speed of 0.1 in the direction of the last seen spot of the cube
+          result.pd.cmdAngularError= newAngle; // -blockYawError
+        }
+
+      }
+      // last line of defence, turn towards the direction of the last location of the cube on the frame.
+      else if (Td >= 2.0 && Td < target_pickup_task_time_limit)
+      {
+        if(blockDistance > 0.35)
+        {
+          // The rover will slowly go towards the cube's last position
+          result.pd.cmdVel = 0.05;// -0.15 Alex C
+        }
+        else
+        {
+          // The rover will reverse angling towards the direction of the last seen cube.
+          result.pd.cmdVel = -0.05;// -0.15 Alex C
+        }
+
+        result.pd.cmdAngularError = -blockYawError/2.0; 
                      
       }
 
@@ -592,6 +619,9 @@ void PickUpController::Reset() {
   result.fingerAngle = -1;
   result.wristAngle = -1;
   result.reset = false;
+
+  frame_counter = 0;
+  last_rotation_before_being_lost = 0;
 
   ignoreCenterSonar = false;
 }
