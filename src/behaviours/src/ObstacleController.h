@@ -4,6 +4,8 @@
 #include "Controller.h"
 #include "Tag.h"
 
+extern float minutesTime;
+
 class ObstacleController : public virtual Controller
 {
 public:
