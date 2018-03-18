@@ -29,6 +29,10 @@ public:
   //Asked by logiccontroller to determine if drive controller should have its waypoints cleared
   bool getShouldClearWaypoints() {bool tmp = clearWaypoints; clearWaypoints = false; return tmp;}
 
+
+  //for sonar reducting fake noise
+  long int getROSTimeInMilliSecs_S();
+
 protected:
 
   void ProcessData();
@@ -87,6 +91,14 @@ private:
   bool can_set_waypoint = false;
 
   float camera_offset_correction = 0.020; //meters;
+  
+
+  //reduce fake noice
+  long int sonar_startTime;
+  const long int SONAR_DURATION = 1000;//millisec
+  const int obstacle_constrain = 5;
+  int obstacle_counter = 0;
+  bool initialized = false;
 };
 
 #endif // OBSTACLECONTOLLER_H

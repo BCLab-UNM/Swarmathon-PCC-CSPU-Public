@@ -27,17 +27,49 @@ void ObstacleController::Reset() {
 
 // Avoid crashing into objects detected by the ultraound
 void ObstacleController::avoidObstacle() {
-  
     //always turn left to avoid obstacles
-    if (right < 0.8 || center < 0.8 || left < 0.8) {
-      result.type = precisionDriving;
+    if (right < 0.8 || center < 0.8 || left < 0.8) {//mosified for testing around houses
 
-      result.pd.cmdAngular = -K_angular;
+	/**original
+	ROS_INFO_STREAM("IN SEARCH: avoiding!!!!!!!!!!!!!");
+		      result.type = precisionDriving;
+		      result.pd.cmdAngular = -K_angular;
+		      result.pd.setPointVel = 0.0;
+		      result.pd.cmdVel = 0.0;
+		      result.pd.setPointYaw = 0;
+**/
+	
+	if(!initialized){
+		ROS_INFO_STREAM("IN SEARCH: AVOIDING is initialized");
+                sonar_startTime = getROSTimeInMilliSecs_S();//for reducing sonar fake noise
+	}
+	
+	if(obstacle_counter >= obstacle_constrain){
+		ROS_INFO_STREAM("IN SEARCH: time:" <<  getROSTimeInMilliSecs_S() << " - " << sonar_startTime);
+      		if(getROSTimeInMilliSecs_S() - sonar_startTime <= SONAR_DURATION){
+	      
+		      ROS_INFO_STREAM("IN SEARCH: avoiding!!!!!!!!!!!!!");
+		      result.type = precisionDriving;
+		      result.pd.cmdAngular = -K_angular;
 
-      result.pd.setPointVel = 0.0;
-      result.pd.cmdVel = 0.0;
-      result.pd.setPointYaw = 0;
-    }
+		      result.pd.setPointVel = 0.0;
+		      result.pd.cmdVel = 0.0;
+		      result.pd.setPointYaw = 0;	
+	      }
+	      ROS_INFO_STREAM("IN SEARCH: AVOIDING RESETTING");
+	      sonar_startTime = getROSTimeInMilliSecs_S();
+              obstacle_counter = 0;
+	      initialized = false;
+        }else if(getROSTimeInMilliSecs_S() - sonar_startTime > SONAR_DURATION){
+              obstacle_counter = 0;
+	      initialized = false;
+	}else{
+	       obstacle_counter++;
+	       ROS_INFO_STREAM("IN SEARCH: AVOIDING: " << obstacle_counter);
+	       initialized = true;
+        }
+	
+   }
 }
 
 // A collection zone was seen in front of the rover and we are not carrying a target
@@ -232,7 +264,7 @@ bool ObstacleController::checkForCollectionZoneTags( vector<Tag> tags ) {
 bool ObstacleController::ShouldInterrupt() {
 
   //if we see and obstacle and havent thrown an interrupt yet
-  if(obstacleDetected && !obstacleInterrupt)
+  if(obstacleDetected && obstacleInterrupt)
   {
     obstacleInterrupt = true;
     return true;
@@ -252,7 +284,7 @@ bool ObstacleController::ShouldInterrupt() {
 
 bool ObstacleController::HasWork() {
   //there is work if a waypoint needs to be set or the obstacle hasnt been avoided
-  if (can_set_waypoint && set_waypoint)
+  if (can_set_waypoint && !set_waypoint)
   {
     return true;
   }
@@ -292,4 +324,14 @@ void ObstacleController::setTargetHeldClear()
     previousTargetState = false;
     ignore_center_sonar = false;
   }
+}
+
+
+long int ObstacleController::getROSTimeInMilliSecs_S()
+{
+  // Get the current time according to ROS (will be zero for simulated clock until the first time message is recieved).
+  ros::Time t = ros::Time::now();
+  
+  // Convert from seconds and nanoseconds to milliseconds.
+  return t.sec*1e3 + t.nsec/1e6;
 }
