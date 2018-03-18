@@ -17,8 +17,8 @@ extern ros::Publisher fingerAnglePublish;
   result.wristAngle = M_PI/4;
 */
 
-int closeClawOffsetSim 			= 2; // TODO: Set this value to 0, this is only for simulation.  //2
-float extraTimeOffsetSim 		= 1.3; //TODO: Set this value to 0. this is only for simulation.  //1.3
+int closeClawOffsetSim 			= 0; // TODO: Set this value to 0, this is only for simulation.  //2
+float extraTimeOffsetSim 		= 0; //TODO: Set this value to 0. this is only for simulation.  //1.3
 
 float fingerAngleOpen		 	= M_PI_2;
 float fingerAngleClose 			= 0;
@@ -190,8 +190,8 @@ void PickUpController::ProcessData()
   if(Td > check_time_begin && Td < lower_gripper_time_begin && ProcessImage())
     frame_counter ++;
 
-  if ((Td < target_pickup_task_time_limit + 0.1 && blockDistanceFromCamera < 0.14) || frame_counter > 8)
-  //if(frame_counter > 8)
+  // rover should always back up a little
+  if ((Td > check_time_begin + 1.5 && Td < target_pickup_task_time_limit + 0.1 && blockDistanceFromCamera < 0.14) || frame_counter > 8)
   {
     frame_counter = 0;
     result.type = behavior;
