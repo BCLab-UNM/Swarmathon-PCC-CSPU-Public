@@ -176,22 +176,23 @@ void PickUpController::ProcessData()
 
   //cout << "distance : " << blockDistanceFromCamera << " time is : " << Td << endl;
 
-  stringstream ss;
-  ss << "\nPickupController::ProcessData" << "\n";
-  ss << "TD = " << Td << "\n";
-  ss << "lockTarget = " << lockTarget << "\n";
-  ss << "blockYawError = " << blockYawError << "\n";
-  ss << "blockDistanceFromCamera = " << blockDistanceFromCamera << "\n";
-  std_msgs::String msg;
-  msg.data = ss.str();
-  infoLogPublisher.publish(msg);
+  
 
   
   if(Td > check_time_begin && Td < lower_gripper_time_begin && ProcessImage())
     frame_counter ++;
 
+  stringstream ss;
+  ss << "\nPickupController::ProcessData" << "\n";
+  ss << "Td = " << Td << "\n";
+  ss << "frameCounter = " << frame_counter << "\n";
+  ss << "blockDistanceFromCamera = " << blockDistanceFromCamera << "\n";
+  std_msgs::String msg;
+  msg.data = ss.str();
+  infoLogPublisher.publish(msg);
+
   // rover should always back up a little
-  if ((Td > check_time_begin + 1.5 && Td < target_pickup_task_time_limit + 0.1 && blockDistanceFromCamera < 0.14) || frame_counter > 8)
+  if ((Td > check_time_begin + 1.5 && Td < target_pickup_task_time_limit + 0.1 && blockDistanceFromCamera < 0.16) || frame_counter > 8)
   {
     frame_counter = 0;
     result.type = behavior;
@@ -312,7 +313,7 @@ bool PickUpController::ProcessImage(){
 
   std_msgs::String msg;
   msg.data = ss.str();
-  infoLogPublisher.publish(msg);
+  //infoLogPublisher.publish(msg);
 
   /*
   cv::imshow("ProcessImage::morph",morph);
@@ -512,7 +513,7 @@ Result PickUpController::DoWork()
         ss << "cmdAngularError = " << result.pd.cmdAngularError << "\n";
         std_msgs::String msg;
         msg.data = ss.str();
-        infoLogPublisher.publish(msg);
+        //infoLogPublisher.publish(msg);
     }
     else if (blockDistance > targetDistance && !lockTarget) //if a target is detected but not locked, and not too close.
     {
@@ -526,7 +527,7 @@ Result PickUpController::DoWork()
 
       //if(dist == 0){dist = 0.00001;} // not necessary because parent if condition states blockDistance must be greater than 0.15
       
-      result.pd.cmdAngularError = -blockYawError/(0.9/dist);// alex c, the closer the rover gets to the target, the less drastic it turns
+      result.pd.cmdAngularError = -blockYawError/(0.6/dist);// alex c, the closer the rover gets to the target, the less drastic it turns
       timeOut = false;
 
       return result;
