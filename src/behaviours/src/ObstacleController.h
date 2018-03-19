@@ -3,6 +3,7 @@
 
 #include "Controller.h"
 #include "Tag.h"
+#include  <ros/ros.h>
 
 class ObstacleController : public virtual Controller
 {
