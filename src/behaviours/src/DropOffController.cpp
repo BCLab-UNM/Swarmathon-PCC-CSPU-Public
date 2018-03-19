@@ -408,12 +408,12 @@ void DropOffController::ProcessImage(){
     }
   }
 
-  
+  /*
   cv::imshow("ProcessImage::morph",morph);
   cv::imshow("ProcessImage::drawing",drawing);
   cv::imshow("ProcessImage::raw",img);
   cv::waitKey(1);
-  
+  */
 }
 
 
