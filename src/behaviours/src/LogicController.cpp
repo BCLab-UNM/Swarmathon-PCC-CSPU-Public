@@ -1,5 +1,12 @@
 #include "LogicController.h"
 
+// TODO: Remove these includes and remove all debugging messages
+// for debugging 
+#include <ros/ros.h>
+#include <sstream>
+#include <std_msgs/String.h>
+extern ros::Publisher infoLogPublisher;
+
 LogicController::LogicController() {
 
   logicState = LOGIC_STATE_INTERRUPT;
@@ -28,7 +35,53 @@ void LogicController::Reset() {
 //This function is called every 1/10th second by the ROSAdapter
 //The logical flow if the behaviours is controlled here by using a interrupt, haswork, priority queue system.
 Result LogicController::DoWork() {
-  Result result;
+  
+  
+  
+  stringstream ss;
+  ss << "\nLogicController::DoWork()" << "\n";
+  ss << "Process state = " << GetProcessState() << "\n";
+  std_msgs::String msg;
+  msg.data = ss.str();
+  infoLogPublisher.publish(msg);
+
+  if(processState == PROCCESS_STATE_TARGET_PICKEDUP)
+      {
+        stringstream ss2;
+        ss2 << "PROCCESS_STATE_TARGET_PICKEDUP" << "\n";
+
+        if(pickUpController.GetTargetHeld() == false)
+        {
+          ss2 << "Target NOT Held" << "\n";
+        }else{
+          ss2 << "Target Held" << "\n";
+        }
+        std_msgs::String msg2;
+        msg2.data = ss2.str();
+        infoLogPublisher.publish(msg2);
+        
+      }else if(processState == PROCCESS_STATE_DROP_OFF){
+
+        stringstream ss2;
+        ss2 << "PROCCESS_STATE_DROP_OFF" << "\n";
+        std_msgs::String msg2;
+        msg2.data = ss2.str();
+        infoLogPublisher.publish(msg2);
+        
+
+      }else if(processState == PROCCESS_STATE_SEARCHING){
+
+        stringstream ss2;
+        ss2 << "PROCCESS_STATE_SEARCHING" << "\n";
+        std_msgs::String msg2;
+        msg2.data = ss2.str();
+        infoLogPublisher.publish(msg2);
+        
+
+      }
+ 
+  
+  Result result; 
 
   //first a loop runs through all the controllers who have a priority of 0 or above witht he largest number being
   //most important. A priority of less than 0 is an ignored controller use -1 for standards sake.
@@ -40,6 +93,8 @@ Result LogicController::DoWork() {
 	//do not break all shouldInterupts may need calling in order to properly pre-proccess data.
       }
   }
+
+
 
   //logic state switch
   switch(logicState) {
@@ -71,6 +126,7 @@ Result LogicController::DoWork() {
       //default result state if someone has work this safe gaurds against faulty result types
       result.b = noChange;
     }
+    
 
     //take the top member of the priority queue and run their do work function.
     result = control_queue.top().controller->DoWork();
@@ -85,6 +141,7 @@ Result LogicController::DoWork() {
         controllerInterconnect(); //allow controller to communicate state data before it is reset
         control_queue.top().controller->Reset();
       }
+
 
       //ask for the procces state to change to the next state or loop around to the begining
       if(result.b == nextProcess) {
@@ -333,6 +390,9 @@ void LogicController::SetCenterLocationOdom(Point centerLocationOdom)
 }
 
 string LogicController::GetProcessState() {
+  if(control_queue.empty() == true)
+    return "No State";
+
   Controller* my_controller = control_queue.top().controller;
   string state = string();
 
