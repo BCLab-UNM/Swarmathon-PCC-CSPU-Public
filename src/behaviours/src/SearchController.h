@@ -3,6 +3,8 @@
 
 #include <random_numbers/random_numbers.h>
 #include "Controller.h"
+#include <math.h>
+
 
 /**
  * This class implements the search control algorithm for the rovers. The code
@@ -30,6 +32,9 @@ public:
 protected:
 
   void ProcessData();
+  void setNextGoalPos();
+  void setIntialPos();
+  Point calculateTempPoint();
 
 private:
 
@@ -45,6 +50,18 @@ private:
   // Flag to allow special behaviour for the first waypoint
   bool first_waypoint = true;
   bool succesfullPickup = false;
+
+  //sammi: pattern walk
+  Point nextGoalPos;
+  Point tempPoint;//a point in the map with no angel drifting
+  const float INCREASE_x_y = 0.75/sqrt(2);//the increasing x and y, since the pattern walk is 1/4 division of the arena with origin at home
+  const float START_LEN = 1.3;//meter
+  float THETA_TRAN;
+  float r_patterWalk;
+  
+  //localization 
+  float testingDistance = 0;
+  Point testing_last_pos;
 };
 
 #endif /* SEARCH_CONTROLLER */
