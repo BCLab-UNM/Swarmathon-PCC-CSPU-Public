@@ -18,8 +18,8 @@ extern ros::Publisher fingerAnglePublish;
 */
 
 
-int closeClawOffsetSim 			= 2; // TODO: Set this value to 0, this is only for simulation.  //2
-float extraTimeOffsetSim 		= 1.7; //TODO: Set this value to 0. this is only for simulation.  //1.3
+int closeClawOffsetSim 			= 0; // TODO: Set this value to 0, this is only for simulation.  //2
+float extraTimeOffsetSim 		= 0; //TODO: Set this value to 0. this is only for simulation.  //1.3
 
 
 float fingerAngleOpen		 	= M_PI_2;

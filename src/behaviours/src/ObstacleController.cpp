@@ -1,4 +1,5 @@
 #include "ObstacleController.h"
+#include <ros/ros.h>
 
 ObstacleController::ObstacleController()
 {
@@ -27,6 +28,7 @@ void ObstacleController::avoidObstacle() {
 	ROS_INFO_STREAM("IN SEARCH: avoiding!!!!!!!!!!!!!");
 		      result.type = precisionDriving;
 		      result.pd.cmdAngular = -K_angular;
+
 		      result.pd.setPointVel = 0.0;
 		      result.pd.cmdVel = 0.0;
 		      result.pd.setPointYaw = 0;
@@ -68,7 +70,7 @@ void ObstacleController::avoidObstacle() {
 // A collection zone was seen in front of the rover and we are not carrying a target
 // so avoid running over the collection zone and possibly pushing cubes out.
 void ObstacleController::avoidCollectionZone() {
-  
+    ROS_INFO_STREAM("IN SEARCH: AVOIDING HOMMMMMMME");
     result.type = precisionDriving;
 
     result.pd.cmdVel = 0.0;
@@ -100,8 +102,6 @@ Result ObstacleController::DoWork() {
   else {
     avoidObstacle();
   }
-
-
 
   //if an obstacle has been avoided
   if (can_set_waypoint) {
@@ -218,23 +218,24 @@ void ObstacleController::setTagData(vector<Tag> tags){
 
 bool ObstacleController::checkForCollectionZoneTags( vector<Tag> tags ) {
 
-  for ( auto & tag : tags ) 
-  { 
+  for ( auto & tag : tags ) { 
+
     // Check the orientation of the tag. If we are outside the collection zone the yaw will be positive so treat the collection zone as an obstacle. 
     //If the yaw is negative the robot is inside the collection zone and the boundary should not be treated as an obstacle. 
     //This allows the robot to leave the collection zone after dropping off a target.
     if ( tag.calcYaw() > 0 ) 
-    {
+      {
 	// checks if tag is on the right or left side of the image
-      if (tag.getPositionX() + camera_offset_correction > 0) {
-        count_right_collection_zone_tags++;
+	if (tag.getPositionX() + camera_offset_correction > 0) {
+	  count_right_collection_zone_tags++;
 	  
-      } else {
-        count_left_collection_zone_tags++;
+	} else {
+	  count_left_collection_zone_tags++;
+	}
       }
-    }
-   
+    
   }
+
 
   // Did any tags indicate that the robot is inside the collection zone?
   return count_left_collection_zone_tags + count_right_collection_zone_tags > 0;
@@ -245,7 +246,7 @@ bool ObstacleController::checkForCollectionZoneTags( vector<Tag> tags ) {
 bool ObstacleController::ShouldInterrupt() {
 
   //if we see and obstacle and havent thrown an interrupt yet
-  if(obstacleDetected && obstacleInterrupt)
+  if(obstacleDetected && !obstacleInterrupt)
   {
     obstacleInterrupt = true;
     return true;
@@ -265,7 +266,7 @@ bool ObstacleController::ShouldInterrupt() {
 
 bool ObstacleController::HasWork() {
   //there is work if a waypoint needs to be set or the obstacle hasnt been avoided
-  if (can_set_waypoint && !set_waypoint)
+  if (can_set_waypoint && set_waypoint)
   {
     return true;
   }
@@ -306,7 +307,6 @@ void ObstacleController::setTargetHeldClear()
     ignore_center_sonar = false;
   }
 }
-
 
 long int ObstacleController::getROSTimeInMilliSecs_S()
 {

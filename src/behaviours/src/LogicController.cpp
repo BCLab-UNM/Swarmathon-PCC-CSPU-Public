@@ -389,7 +389,7 @@ void LogicController::SetCenterLocationOdom(Point centerLocationOdom)
   dropOffController.SetCenterLocation(centerLocationOdom);
 }
 
-string LogicController::GetProcessState() {
+string LogicController::GetProcessState () {
   if(control_queue.empty() == true)
     return "No State";
 
