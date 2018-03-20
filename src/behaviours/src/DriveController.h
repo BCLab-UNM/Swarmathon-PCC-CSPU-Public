@@ -36,7 +36,7 @@ private:
   const float waypointTolerance = 0.15; //15 cm tolerance.
 
   //0.65 MAX value
-  float searchVelocity = 0.35; // meters/second
+  float searchVelocity = 0.3; // meters/second 0.35
 
   float linearVelocity = 0;
   float angularVelocity = 0;

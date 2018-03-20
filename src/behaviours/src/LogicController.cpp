@@ -35,9 +35,14 @@ void LogicController::Reset() {
 //This function is called every 1/10th second by the ROSAdapter
 //The logical flow if the behaviours is controlled here by using a interrupt, haswork, priority queue system.
 Result LogicController::DoWork() {
-  
-  
-  
+
+ // obstacleController.setCurrentState(GetProcessState());
+
+
+	Result result;
+
+
+
   stringstream ss;
   ss << "\nLogicController::DoWork()" << "\n";
   ss << "Process state = " << GetProcessState() << "\n";
@@ -45,13 +50,27 @@ Result LogicController::DoWork() {
   msg.data = ss.str();
   infoLogPublisher.publish(msg);
 
+  
+
   if(processState == PROCCESS_STATE_TARGET_PICKEDUP)
       {
         stringstream ss2;
         ss2 << "PROCCESS_STATE_TARGET_PICKEDUP" << "\n";
 
-        if(pickUpController.GetTargetHeld() == false)
+        ROS_INFO_STREAM("processState: PROCCESS_STATE_TARGET_PICKEDUP");
+
+        if(pickUpController.IsHoldingCube())
         {
+          ROS_INFO_STREAM("processState: go back to search and reset");
+          /*pickUpController.Reset();
+          searchController.Reset();
+          //dropoffController.Reset();
+          obstacleController.Reset();
+          range_controller.Reset();
+          ProcessData();*/
+	result.type = behavior;
+        result.b = prevProcess;
+        result.reset = false;
           ss2 << "Target NOT Held" << "\n";
         }else{
           ss2 << "Target Held" << "\n";
@@ -60,7 +79,25 @@ Result LogicController::DoWork() {
         msg2.data = ss2.str();
         infoLogPublisher.publish(msg2);
         
-      }else if(processState == PROCCESS_STATE_DROP_OFF){
+      }
+	//else 
+      {
+
+	//first a loop runs through all the controllers who have a priority of 0 or above witht he largest number being
+        //most important. A priority of less than 0 is an ignored controller use -1 for standards sake.
+        //if any controller needs and interrupt the logic state is changed to interrupt
+        for(PrioritizedController cntrlr : prioritizedControllers) {
+          if(cntrlr.controller->ShouldInterrupt() && cntrlr.priority >= 0) 
+          {
+	    logicState = LOGIC_STATE_INTERRUPT;
+	    //do not break all shouldInterupts may need calling in order to properly pre-proccess data.
+          }
+      }
+  }
+
+
+
+/*else if(processState == PROCCESS_STATE_DROP_OFF){
 
         stringstream ss2;
         ss2 << "PROCCESS_STATE_DROP_OFF" << "\n";
@@ -79,20 +116,12 @@ Result LogicController::DoWork() {
         
 
       }
+*/
  
   
-  Result result; 
+   
 
-  //first a loop runs through all the controllers who have a priority of 0 or above witht he largest number being
-  //most important. A priority of less than 0 is an ignored controller use -1 for standards sake.
-  //if any controller needs and interrupt the logic state is changed to interrupt
-  for(PrioritizedController cntrlr : prioritizedControllers) {
-    if(cntrlr.controller->ShouldInterrupt() && cntrlr.priority >= 0) 
-      {
-	logicState = LOGIC_STATE_INTERRUPT;
-	//do not break all shouldInterupts may need calling in order to properly pre-proccess data.
-      }
-  }
+  
 
 
 
@@ -245,6 +274,7 @@ void LogicController::UpdateData()
 void LogicController::ProcessData() 
 {
 
+  
   //this controller priority is used when searching
   if (processState == PROCCESS_STATE_SEARCHING) 
   {
@@ -256,6 +286,7 @@ void LogicController::ProcessData()
       PrioritizedController{-1, (Controller*)(&dropOffController)},
       PrioritizedController{-1, (Controller*)(&manualWaypointController)}
     };
+    ROS_INFO_STREAM("processState: switch to search state");
   }
 
   //this priority is used when returning a target to the center collection zone
@@ -269,6 +300,7 @@ void LogicController::ProcessData()
     PrioritizedController{1, (Controller*)(&dropOffController)},
     PrioritizedController{-1, (Controller*)(&manualWaypointController)}
     };
+     ROS_INFO_STREAM("processState: switch to picked up state");
   }
   //this priority is used when returning a target to the center collection zone
   else if (processState  == PROCCESS_STATE_DROP_OFF)
@@ -281,6 +313,7 @@ void LogicController::ProcessData()
       PrioritizedController{1, (Controller*)(&dropOffController)},
       PrioritizedController{-1, (Controller*)(&manualWaypointController)}
     };
+     ROS_INFO_STREAM("processState: switch to drop off state");
   }
   else if (processState == PROCESS_STATE_MANUAL) {
     // under manual control only the manual waypoint controller is active

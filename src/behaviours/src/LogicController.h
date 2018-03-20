@@ -136,6 +136,7 @@ private:
   
 
   long int current_time = 0;
+  
 
   // Alex C
   cv::Mat img;

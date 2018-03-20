@@ -22,6 +22,7 @@ public:
   void setIgnoreCenterSonar();
   void setCurrentTimeInMilliSecs( long int time );
   void setTargetHeld ();
+  void setCurrentState(string str){ if(str!="Avoid") current_state = str;}
 
   // Checks if a target is held and if so resets the state of the obestacle controller otherwise does nothing
   void setTargetHeldClear();
@@ -96,6 +97,8 @@ private:
   const int obstacle_constrain = 4;
   int obstacle_counter = 0;
   bool initialized = false;
+  
+  string current_state = "";// Alex C, for pickup ignore obstacle
 
 };
 

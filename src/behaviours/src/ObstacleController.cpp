@@ -89,17 +89,21 @@ void ObstacleController::avoidCollectionZone() {
 }
 
 
+
 Result ObstacleController::DoWork() {
 
   clearWaypoints = true;
   set_waypoint = true;
   result.PIDMode = CONST_PID;
 
+  ROS_INFO_STREAM("Obstacle::DoWork "<<current_state);
+
   // The obstacle is an april tag marking the collection zone
   if(collection_zone_seen){
     avoidCollectionZone();
   }
-  else {
+  else
+  {
     avoidObstacle();
   }
 

@@ -16,7 +16,7 @@ SearchController::SearchController() {
     centerLocation.x = 0;
     centerLocation.y = 0;
     centerLocation.theta = 0;
-    result.PIDMode = FAST_PID;
+    result.PIDMode = FAST_PID;//Original:FAST_PID
 
     result.fingerAngle = M_PI/2;
     result.wristAngle = M_PI/4;
@@ -48,6 +48,7 @@ Result SearchController::DoWork() {
         }
     }else{
 	//localization testing
+        ROS_INFO_STREAM("WAYPOINT: Waypoint is empty");
 	testing_last_pos = currentLocation;
     }
 

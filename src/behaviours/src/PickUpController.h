@@ -34,6 +34,8 @@ public:
 
   void SetCurrentTimeInMilliSecs( long int time );
 
+  bool IsHoldingCube();
+
   // Alex C
   void UpdateFrame(const cv::Mat img);
 
@@ -87,6 +89,7 @@ private:
   //this controller has control~
   bool has_control = false;
 
+  float rangeCenter = 0;
   // Alex C
   cv::Mat img;
   bool ProcessImage();

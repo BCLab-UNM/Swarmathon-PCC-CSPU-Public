@@ -187,7 +187,7 @@ long int getROSTimeInMilliSecs();
 
 ////sammi
 bool cubeHeld = false;
-float normal_offSet_dst_centerUpdate = 0;//physical testing
+float normal_offSet_dst_centerUpdate = 1.5;//0->1.5 MAR_19
 bool collectionZoneSeen = false;
 const int ave_interval = 150;////in sec TODO: physical testing to set it
 //float collectionZoneSeenTimeElapsed = 0;
@@ -198,6 +198,7 @@ time_t collectionZoneSeenStartTime;
 int counter_for_average = 0;
 const int NUM_of_LOCATIONS = 44;////TODO: physical testing
 Point centerMap;
+const int numIgnoreHomLocation = 5;
 
 ////sammi
 void sumUpLocation(geometry_msgs::Pose2D &location, Point &total_location);
@@ -405,9 +406,9 @@ void behaviourStateMachine(const ros::TimerEvent&)
 
             if(counter_for_average > NUM_of_LOCATIONS){
                 averageLocation(locationSumup, counter_for_average);
-                Point center = updateCenterLocationWdst(locationSumup, normal_offSet_dst_centerUpdate);
-                ROS_INFO_STREAM("rosAdap: newCenter afterOffSet: " << center.x << ", " << center.y);
-                logicController.SetCenterLocationOdom(center);
+                //Point center = updateCenterLocationWdst(locationSumup, normal_offSet_dst_centerUpdate);//normal_offSet_dst_centerUpdate -> 0 MAR_19
+                ROS_INFO_STREAM("rosAdap: newCenter afterOffSet: " << locationSumup.x << ", " << locationSumup.y);
+                logicController.SetCenterLocationOdom(locationSumup);//mar 19
                 //reset
                 collectionZoneSeenStartTime = time(0);
                 collectionZoneSeen = false;//very important!!!
@@ -668,17 +669,21 @@ void mapHandler(const nav_msgs::Odometry::ConstPtr& message) {
     angularVelocity = message->twist.twist.angular.z;
 
     if(pause2wait){
-        ++ counter_for_average;
-        sumUpLocation(currentLocationMap, locationSumup);
-        ROS_INFO_STREAM( "rosA: in MapH averaging: " << counter_for_average << ": " << currentLocationMap.x << ", " << currentLocationMap.y);
+	if(counter_for_average > numIgnoreHomLocation){//Sammi: ingore the first 5 tags //mar_19
+        	++ counter_for_average;
+        	sumUpLocation(currentLocationMap, locationSumup);
+        	ROS_INFO_STREAM( "rosA: in MapH averaging: " << counter_for_average << ": " << currentLocationMap.x << ", " << currentLocationMap.y);
+	}else{
+		ROS_INFO_STREAM("ingoring the location");
+	}
     }else{
         Point curr_loc;
         curr_loc.x = currentLocationMap.x;
         curr_loc.y = currentLocationMap.y;
         curr_loc.theta = currentLocationMap.theta;
 
-          logicController.SetPositionData(curr_loc);
-          logicController.SetVelocityData(linearVelocity, angularVelocity);
+        logicController.SetPositionData(curr_loc);
+        logicController.SetVelocityData(linearVelocity, angularVelocity);
     }
 }
 
@@ -856,9 +861,9 @@ void averageLocation(Point &location, int &count){
     stringstream ss;
     ROS_INFO_STREAM("rosAdap: in average: " << location.x << "/" << count << ", " << location.y << "/" << count
                     << "locationSumUp: " << locationSumup.x << ", " << locationSumup.y);
-    location.x /= count;
-    location.y /= count;
-    location.theta /= count;
+    location.x /= count - numIgnoreHomLocation;//Mar 19
+    location.y /= count - numIgnoreHomLocation;//Mar 19
+    location.theta /= count - numIgnoreHomLocation;//Mar 19
 
     ROS_INFO_STREAM("rosAdap: after average: " << locationSumup.x << ", " << locationSumup.y);
 }

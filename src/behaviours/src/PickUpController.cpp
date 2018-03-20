@@ -143,9 +143,10 @@ void PickUpController::SetTagData(vector<Tag> tags)
 
 }
 
-bool PickUpController::SetSonarData(float rangeCenter)
+bool PickUpController::SetSonarData(float r)
 {
 
+  rangeCenter = r;
   if (rangeCenter < 0.12 && targetFound)
   {
     result.type = behavior;
@@ -191,15 +192,13 @@ void PickUpController::ProcessData()
   ss << "blockDistanceFromCamera = " << blockDistanceFromCamera << "\n";
   std_msgs::String msg;
   msg.data = ss.str();
-  infoLogPublisher.publish(msg);
+  //infoLogPublisher.publish(msg);
 
   
   if(Td > check_time_begin && Td < lower_gripper_time_begin && ProcessImage())
     frame_counter ++;
 
-  if ((Td > check_time_begin + 1.5 && Td < target_pickup_task_time_limit + 0.1 && blockDistanceFromCamera < 0.16) || frame_counter > 8)
-
-
+  if ((Td > check_time_begin + 1.5 && Td < target_pickup_task_time_limit + 0.1 && blockDistanceFromCamera < 0.16 ) || frame_counter > 8)
   {
     frame_counter = 0;
     result.type = behavior;
@@ -601,6 +600,11 @@ Result PickUpController::DoWork()
   }
 
   return result;
+}
+
+bool PickUpController::IsHoldingCube()
+{
+  return (blockDistanceFromCamera < 0.16) || (rangeCenter < 0.12 && targetFound);
 }
 
 bool PickUpController::HasWork()
