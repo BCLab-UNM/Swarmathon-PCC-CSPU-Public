@@ -38,8 +38,13 @@ public:
 
   void SetCurrentTimeInMilliSecs( long int time );
 
-    // Alex C
+  // Alex C
   void UpdateFrame(const cv::Mat img);
+
+  //Wangda ***********************
+  bool seenFirstHomeTag(){return firstHomeTag;}
+  bool isDoingWork(){return doingWork;}
+  bool dropOffStageHandle(float elapsed);
 
 private:
 
@@ -57,7 +62,12 @@ private:
   const float searchVelocity = 0.15; //in meters per second
   const float dropDelay = 0.5; //delay in seconds for dropOff
 
-
+  //Wangda
+  const float stageLongForwardTimer =       1.3;//1.3 physical 1.5 simulation
+  const float stageShortForwardTimer =      1.5;// 1.5 physical 1.5 simulation
+  const float stageTurnTimer =              0.4;//1.5 physical 0.4 simulation
+  const float backOffTimer =                3.0;
+  const float stageSpeed =                  0.3;
 
   //Instance Variables
 
@@ -129,6 +139,26 @@ private:
   bool precisionInterrupt = false;
   bool finalInterrupt = false;
   bool first_center = true;
+
+
+  //Wangda *******************************************
+  //Seen first hometag since switched to dropoff state
+  bool firstHomeTag;
+  //Returns true if the controller starts doing work
+  bool doingWork;
+  float centerX;
+
+  bool processImage;
+  string printDirection="";
+
+  int tooMuchLeftStage;
+  int tooMuchRightStage;
+
+  float closestYaw=0.0;
+  float lockedClosestYaw = 0.0;
+  //Wangda *******************************************
+
+
 
   // Alex C
   cv::Mat img;

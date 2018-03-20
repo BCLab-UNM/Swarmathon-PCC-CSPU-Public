@@ -508,5 +508,9 @@ void LogicController::SetCurrentFrame(const cv::Mat &image)
 {
   img = image;
   pickUpController.UpdateFrame(image);
-  dropOffController.UpdateFrame(image);
+  //Wangda
+  if(!dropOffController.seenFirstHomeTag() && dropOffController.isDoingWork())
+  {
+      dropOffController.UpdateFrame(image);
+  }
 }
