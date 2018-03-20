@@ -65,7 +65,7 @@ private:
   //Wangda
   const float stageLongForwardTimer =       1.3;//1.3 physical 1.5 simulation
   const float stageShortForwardTimer =      1.5;// 1.5 physical 1.5 simulation
-  const float stageTurnTimer =              0.4;//1.5 physical 0.4 simulation
+  const float stageTurnTimer =              1.5;//1.5 physical 0.4 simulation
   const float backOffTimer =                3.0;
   const float stageSpeed =                  0.3;
 
