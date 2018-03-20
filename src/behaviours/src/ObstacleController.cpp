@@ -22,58 +22,62 @@ void ObstacleController::Reset() {
 // Avoid crashing into objects detected by the ultraound
 void ObstacleController::avoidObstacle() {
     //always turn left to avoid obstacles
-    if (right < 0.8 || center < 0.8 || left < 0.8) {//mosified for testing around houses
-
-	/**original
-	ROS_INFO_STREAM("IN SEARCH: avoiding!!!!!!!!!!!!!");
-		      result.type = precisionDriving;
-		      result.pd.cmdAngular = -K_angular;
-
-		      result.pd.setPointVel = 0.0;
-		      result.pd.cmdVel = 0.0;
-		      result.pd.setPointYaw = 0;
-**/
-	
-	if(!initialized){
-		ROS_INFO_STREAM("IN SEARCH: AVOIDING is initialized");
-                sonar_startTime = getROSTimeInMilliSecs_S();//for reducing sonar fake noise
-	}
-	
-	if(obstacle_counter >= obstacle_constrain){
-		ROS_INFO_STREAM("IN SEARCH: time:" <<  getROSTimeInMilliSecs_S() << " - " << sonar_startTime);
-      		if(getROSTimeInMilliSecs_S() - sonar_startTime <= SONAR_DURATION){
-	      
-		      ROS_INFO_STREAM("IN SEARCH: avoiding!!!!!!!!!!!!!");
-		      result.type = precisionDriving;
-		      result.pd.cmdAngular = -K_angular;
-
-		      result.pd.setPointVel = 0.0;
-		      result.pd.cmdVel = 0.0;
-		      result.pd.setPointYaw = 0;	
-	      }
-	      ROS_INFO_STREAM("IN SEARCH: AVOIDING RESETTING");
-	      sonar_startTime = getROSTimeInMilliSecs_S();
-              obstacle_counter = 0;
-	      initialized = false;
-        }else if(getROSTimeInMilliSecs_S() - sonar_startTime > SONAR_DURATION){
-              obstacle_counter = 0;
-	      initialized = false;
-	}else{
-	       obstacle_counter++;
-	       ROS_INFO_STREAM("IN SEARCH: AVOIDING: " << obstacle_counter);
-	       initialized = true;
+    if (right < 0.9 || center < 0.9 || left < 0.9) {
+        if(!initialized){
+            ROS_INFO_STREAM("IN Avoidance: AVOIDING is initialized");
+            sonar_startTime = getROSTimeInMilliSecs_S();//for reducing sonar fake noise
         }
-	
-   }
+        if(obstacle_counter >= obstacle_constrain){
+            ROS_INFO_STREAM("IN Avoidance: time:" <<  getROSTimeInMilliSecs_S() << " - " << sonar_startTime);
+            if(getROSTimeInMilliSecs_S() - sonar_startTime <= SONAR_DURATION){
+                ROS_INFO_STREAM("IN Avoidance: Logic says do avoiding!!!!!!!!!!!!!");
+                /*result.type = precisionDriving;
+
+                result.pd.cmdAngular = -K_angular;
+
+                result.pd.setPointVel = 0.0;
+                result.pd.cmdVel = 0.0;
+                result.pd.setPointYaw = 0;
+*/
+		    if(center > left && center > right){
+			ROS_INFO_STREAM("IN AVOIDING: FORWARD");
+			result.pd.cmdAngularError = 0.0;
+			result.pd.cmdVel = 0.3;
+		    }else if(left > right){
+			ROS_INFO_STREAM("IN AVOIDING: TURN LEFT");
+			result.pd.cmdAngular = K_angular-0.2;
+			result.pd.cmdVel = 0.0;
+		    }else{
+			ROS_INFO_STREAM("IN AVOIDING: TURN RIGHT");
+			result.pd.cmdAngular = -K_angular+0.2;
+			result.pd.cmdVel = 0.0;
+		    }
+		      result.type = precisionDriving;
+
+		      result.pd.setPointVel = 0.0;
+		      result.pd.setPointYaw = 0;
+            }
+            ROS_INFO_STREAM("IN Avoidance: AVOIDING RESETTING");
+            sonar_startTime = getROSTimeInMilliSecs_S();
+            obstacle_counter = 0;
+            initialized = false;
+        }else if(getROSTimeInMilliSecs_S() - sonar_startTime > SONAR_DURATION){
+            obstacle_counter = 0;
+            initialized = false;
+        }else{
+            obstacle_counter++;
+            ROS_INFO_STREAM("IN Avoidance: AVOIDING: " << obstacle_counter);
+            initialized = true;
+        }
+
+    }
 }
 
 // A collection zone was seen in front of the rover and we are not carrying a target
 // so avoid running over the collection zone and possibly pushing cubes out.
 void ObstacleController::avoidCollectionZone() {
-    ROS_INFO_STREAM("IN SEARCH: AVOIDING HOMMMMMMME");
+  
     result.type = precisionDriving;
-
-    result.pd.cmdVel = 0.0;
 
     // Decide which side of the rover sees the most april tags and turn away
     // from that side
@@ -89,21 +93,17 @@ void ObstacleController::avoidCollectionZone() {
 }
 
 
-
 Result ObstacleController::DoWork() {
 
   clearWaypoints = true;
   set_waypoint = true;
   result.PIDMode = CONST_PID;
 
-  ROS_INFO_STREAM("Obstacle::DoWork "<<current_state);
-
   // The obstacle is an april tag marking the collection zone
   if(collection_zone_seen){
     avoidCollectionZone();
   }
-  else
-  {
+  else {
     avoidObstacle();
   }
 
@@ -121,6 +121,7 @@ Result ObstacleController::DoWork() {
     forward.y = currentLocation.y + (0.5 * sin(currentLocation.theta));
     result.wpts.waypoints.clear();
     result.wpts.waypoints.push_back(forward);
+    ROS_INFO_STREAM("IN AVOIDING: getting waypoint");
   }
 
   return result;
@@ -131,7 +132,6 @@ void ObstacleController::setSonarData(float sonarleft, float sonarcenter, float 
   left = sonarleft;
   right = sonarright;
   center = sonarcenter;
-
   ProcessData();
 }
 
@@ -314,9 +314,10 @@ void ObstacleController::setTargetHeldClear()
 
 long int ObstacleController::getROSTimeInMilliSecs_S()
 {
-  // Get the current time according to ROS (will be zero for simulated clock until the first time message is recieved).
-  ros::Time t = ros::Time::now();
-  
-  // Convert from seconds and nanoseconds to milliseconds.
-  return t.sec*1e3 + t.nsec/1e6;
+    // Get the current time according to ROS (will be zero for simulated clock until the first time message is recieved).
+    ros::Time t = ros::Time::now();
+
+    // Convert from seconds and nanoseconds to milliseconds.
+    return t.sec*1e3 + t.nsec/1e6;
 }
+
