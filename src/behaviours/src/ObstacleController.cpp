@@ -24,13 +24,13 @@ void ObstacleController::avoidObstacle() {
     //always turn left to avoid obstacles
     if (right < 0.9 || center < 0.9 || left < 0.9) {
         if(!initialized){
-            ROS_INFO_STREAM("IN Avoidance: AVOIDING is initialized");
+            //ROS_INFO_STREAM("IN Avoidance: AVOIDING is initialized");
             sonar_startTime = getROSTimeInMilliSecs_S();//for reducing sonar fake noise
         }
         if(obstacle_counter >= obstacle_constrain){
-            ROS_INFO_STREAM("IN Avoidance: time:" <<  getROSTimeInMilliSecs_S() << " - " << sonar_startTime);
+            //ROS_INFO_STREAM("IN Avoidance: time:" <<  getROSTimeInMilliSecs_S() << " - " << sonar_startTime);
             if(getROSTimeInMilliSecs_S() - sonar_startTime <= SONAR_DURATION){
-                ROS_INFO_STREAM("IN Avoidance: Logic says do avoiding!!!!!!!!!!!!!");
+                //ROS_INFO_STREAM("IN Avoidance: Logic says do avoiding!!!!!!!!!!!!!");
                 /*result.type = precisionDriving;
 
                 result.pd.cmdAngular = -K_angular;
@@ -40,15 +40,15 @@ void ObstacleController::avoidObstacle() {
                 result.pd.setPointYaw = 0;
 */
 		    if(center > left && center > right){
-			ROS_INFO_STREAM("IN AVOIDING: FORWARD");
+			//ROS_INFO_STREAM("IN AVOIDING: FORWARD");
 			result.pd.cmdAngularError = 0.0;
 			result.pd.cmdVel = 0.3;
 		    }else if(left > right){
-			ROS_INFO_STREAM("IN AVOIDING: TURN LEFT");
+			//ROS_INFO_STREAM("IN AVOIDING: TURN LEFT");
 			result.pd.cmdAngular = K_angular-0.2;
 			result.pd.cmdVel = 0.0;
 		    }else{
-			ROS_INFO_STREAM("IN AVOIDING: TURN RIGHT");
+			//ROS_INFO_STREAM("IN AVOIDING: TURN RIGHT");
 			result.pd.cmdAngular = -K_angular+0.2;
 			result.pd.cmdVel = 0.0;
 		    }
@@ -57,7 +57,7 @@ void ObstacleController::avoidObstacle() {
 		      result.pd.setPointVel = 0.0;
 		      result.pd.setPointYaw = 0;
             }
-            ROS_INFO_STREAM("IN Avoidance: AVOIDING RESETTING");
+           // ROS_INFO_STREAM("IN Avoidance: AVOIDING RESETTING");
             sonar_startTime = getROSTimeInMilliSecs_S();
             obstacle_counter = 0;
             initialized = false;
@@ -66,7 +66,7 @@ void ObstacleController::avoidObstacle() {
             initialized = false;
         }else{
             obstacle_counter++;
-            ROS_INFO_STREAM("IN Avoidance: AVOIDING: " << obstacle_counter);
+            //ROS_INFO_STREAM("IN Avoidance: AVOIDING: " << obstacle_counter);
             initialized = true;
         }
 
@@ -130,7 +130,7 @@ Result ObstacleController::DoWork() {
     forward.y = currentLocation.y + (0.5 * sin(currentLocation.theta));
     result.wpts.waypoints.clear();
     result.wpts.waypoints.push_back(forward);
-    ROS_INFO_STREAM("IN AVOIDING: getting waypoint");
+    //ROS_INFO_STREAM("IN AVOIDING: getting waypoint");
   }
 
   return result;

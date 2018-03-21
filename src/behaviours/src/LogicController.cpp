@@ -210,7 +210,7 @@ void LogicController::ProcessData()
       PrioritizedController{-1, (Controller*)(&dropOffController)},
       PrioritizedController{-1, (Controller*)(&manualWaypointController)}
     };
-    ROS_INFO_STREAM("processState: switch to search state");
+    //ROS_INFO_STREAM("processState: switch to search state");
   }
 
   //this priority is used when returning a target to the center collection zone
@@ -224,7 +224,7 @@ void LogicController::ProcessData()
     PrioritizedController{1, (Controller*)(&dropOffController)},
     PrioritizedController{-1, (Controller*)(&manualWaypointController)}
     };
-     ROS_INFO_STREAM("processState: switch to picked up state");
+    // ROS_INFO_STREAM("processState: switch to picked up state");
   }
   //this priority is used when returning a target to the center collection zone
   else if (processState  == PROCCESS_STATE_DROP_OFF)
@@ -237,7 +237,7 @@ void LogicController::ProcessData()
       PrioritizedController{1, (Controller*)(&dropOffController)},
       PrioritizedController{-1, (Controller*)(&manualWaypointController)}
     };
-     ROS_INFO_STREAM("processState: switch to drop off state");
+     //ROS_INFO_STREAM("processState: switch to drop off state");
   }
   else if (processState == PROCESS_STATE_MANUAL) {
     // under manual control only the manual waypoint controller is active
