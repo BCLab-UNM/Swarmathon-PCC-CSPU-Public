@@ -43,7 +43,7 @@ DropOffController::~DropOffController() {
 
 Result DropOffController::DoWork() {
   currentState = '3';
-  ROS_INFO_STREAM("DropOff DoWork Wangda");
+  //ROS_INFO_STREAM("DropOff DoWork Wangda");
 
   //Wangda***********
   printDirection = "";//Debug
@@ -111,7 +111,7 @@ Result DropOffController::DoWork() {
 
   //check to see if we are driving to the center location or if we need to drive in a circle and look.
   if (distanceToCenter > collectionPointVisualDistance && !circularCenterSearching && (count == 0)) {
-      ROS_INFO_STREAM("DropOff driving to the center waypoing Wangda");
+     // ROS_INFO_STREAM("DropOff driving to the center waypoing Wangda");
 
 //      //Wangda
 //      if(!firstHomeTag)
@@ -168,7 +168,7 @@ Result DropOffController::DoWork() {
   }
   else if (timerTimeElapsed >= 2)//spin search for center
   {
-      ROS_INFO_STREAM("DropOff Spin Search Wangda");
+      //ROS_INFO_STREAM("DropOff Spin Search Wangda");
 
     Point nextSpinPoint;
 
@@ -206,7 +206,7 @@ Result DropOffController::DoWork() {
   {
       firstHomeTag = true;
       processImage = false;
-      ROS_INFO_STREAM("============>First home seen!!! Wangda");
+      //ROS_INFO_STREAM("============>First home seen!!! Wangda");
   }
   //Wangda*************************
   
@@ -226,7 +226,7 @@ Result DropOffController::DoWork() {
 
     if (first_center && isPrecisionDriving)
     {
-      ROS_INFO_STREAM("DropOff switch to drop Off STATE Wangda");
+      //ROS_INFO_STREAM("DropOff switch to drop Off STATE Wangda");
       first_center = false;
       result.type = behavior;
       result.reset = false;
@@ -264,7 +264,7 @@ Result DropOffController::DoWork() {
         tooMuchLeftStage = 1;
         tooMuchRightStage = 1;
         lockedClosestYaw = closestYaw;
-        ROS_INFO_STREAM("DROPOFFHANDLE BOTH SIDE Wangda ClosestYaw" << lockedClosestYaw);
+        //ROS_INFO_STREAM("DROPOFFHANDLE BOTH SIDE Wangda ClosestYaw" << lockedClosestYaw);
     }
     else if (right) {
         //result.pd.cmdVel = -0.1 * turnDirection;
@@ -273,7 +273,7 @@ Result DropOffController::DoWork() {
         result.pd.cmdAngularError = 0;
         tooMuchRightStage = 1;
         lockedClosestYaw = closestYaw;
-        ROS_INFO_STREAM("DROPOFFHANDLE TOO MUCH HOMETAG RIGHT Wangda ClosestYaw" << lockedClosestYaw);
+        //ROS_INFO_STREAM("DROPOFFHANDLE TOO MUCH HOMETAG RIGHT Wangda ClosestYaw" << lockedClosestYaw);
     }
     else if (left){
         //result.pd.cmdVel = -0.1 * turnDirection;
@@ -282,7 +282,7 @@ Result DropOffController::DoWork() {
         result.pd.cmdAngularError = 0;
         tooMuchLeftStage = 1;
         lockedClosestYaw = closestYaw;
-        ROS_INFO_STREAM("DROPOFFHANDLE TOO MUCH HOMETAG LEFT Wangda ClosestYaw" << lockedClosestYaw);
+        //ROS_INFO_STREAM("DROPOFFHANDLE TOO MUCH HOMETAG LEFT Wangda ClosestYaw" << lockedClosestYaw);
     }
     else
     {
@@ -333,7 +333,7 @@ Result DropOffController::DoWork() {
   //was on approach to center and did not seenEnoughCenterTags
   //for lostCenterCutoff seconds so reset.
   else if (centerApproach) {
-    ROS_INFO_STREAM("DropOff LOST Center Go Back to previous state Wangda");
+    //ROS_INFO_STREAM("DropOff LOST Center Go Back to previous state Wangda");
     long int elapsed = current_time - lastCenterTagThresholdTime;
     float timeSinceSeeingEnoughCenterTags = elapsed/1e3; // Convert from milliseconds to seconds
     if (timeSinceSeeingEnoughCenterTags > lostCenterCutoff)
@@ -347,7 +347,7 @@ Result DropOffController::DoWork() {
       result.type = waypoint;
       result.wpts.waypoints.push_back(this->centerLocation);
       if (isPrecisionDriving) {
-        ROS_INFO_STREAM("DROPOFF GO TO PREV STATE!!! Wangda");
+        //ROS_INFO_STREAM("DROPOFF GO TO PREV STATE!!! Wangda");
         result.type = behavior;
         result.b = prevProcess;
         result.reset = false;
@@ -592,16 +592,16 @@ bool DropOffController::ShouldInterrupt() {
   if (startWaypoint && !interrupt) {
     interrupt = true;
     precisionInterrupt = false;
-    ROS_INFO_STREAM("Should Interrupt startWaitPoint Wangda");
+    //ROS_INFO_STREAM("Should Interrupt startWaitPoint Wangda");
     return true;
   }
   else if (isPrecisionDriving && !precisionInterrupt) {
     precisionInterrupt = true;
-    ROS_INFO_STREAM("Should Interrupt precision driving Wangda");
+    //ROS_INFO_STREAM("Should Interrupt precision driving Wangda");
     return true;
   }
   if (finalInterrupt) {
-      ROS_INFO_STREAM("Should Interrupt FINAL driving Wangda");
+     //ROS_INFO_STREAM("Should Interrupt FINAL driving Wangda");
 
     return true;
   }
@@ -668,7 +668,7 @@ bool DropOffController::dropOffStageHandle(float elapsed)
         {
             result.pd.cmdVel = stageSpeed;
         }
-        ROS_INFO_STREAM("DROPOFFHANDLE: Gostraight " << tooMuchLeftStage << ", " << tooMuchRightStage << ", " << elapsed);
+        //ROS_INFO_STREAM("DROPOFFHANDLE: Gostraight " << tooMuchLeftStage << ", " << tooMuchRightStage << ", " << elapsed);
     }
     else if(tooMuchLeftStage > 0)
     {
@@ -676,26 +676,26 @@ bool DropOffController::dropOffStageHandle(float elapsed)
         case 1://turn to the correct direction
             result.pd.cmdVel = 0;
             result.pd.cmdAngularError = stageSpeed;
-            ROS_INFO_STREAM("DROPOFFHANDLE: too much left State: current stage " << tooMuchLeftStage << ", " << elapsed);
+            //ROS_INFO_STREAM("DROPOFFHANDLE: too much left State: current stage " << tooMuchLeftStage << ", " << elapsed);
             if(elapsed >= stageTurnTimer)
             {
                 ++tooMuchLeftStage;
                 returnTimer = current_time;
-                ROS_INFO_STREAM("DROPOFFHANDLE: too much left State: switched to stage " << tooMuchLeftStage << ", " << elapsed);
+               // ROS_INFO_STREAM("DROPOFFHANDLE: too much left State: switched to stage " << tooMuchLeftStage << ", " << elapsed);
 
             }
             break;
         case 2://drive forward toward the homebase
             result.pd.cmdVel = stageSpeed;
             result.pd.cmdAngularError = 0.0;
-            ROS_INFO_STREAM("DROPOFFHANDLE: too much left State: current stage " << tooMuchLeftStage << ", " << elapsed);
+            //ROS_INFO_STREAM("DROPOFFHANDLE: too much left State: current stage " << tooMuchLeftStage << ", " << elapsed);
             if(elapsed >= stageShortForwardTimer)
             {
                 tooMuchLeftStage = -1;
                 reachedCollectionPoint = true;
                 centerApproach = false;
                 returnTimer = current_time;
-                ROS_INFO_STREAM("DROPOFFHANDLE: too much left State: switched to stage" << tooMuchLeftStage << ", " << elapsed);
+                //ROS_INFO_STREAM("DROPOFFHANDLE: too much left State: switched to stage" << tooMuchLeftStage << ", " << elapsed);
             }
             break;
         default:
@@ -713,25 +713,25 @@ bool DropOffController::dropOffStageHandle(float elapsed)
         case 1:
             result.pd.cmdVel = 0;
             result.pd.cmdAngularError = -stageSpeed;
-            ROS_INFO_STREAM("DROPOFFHANDLE: too much right State: current stage " << tooMuchRightStage << ", " << elapsed);
+            //ROS_INFO_STREAM("DROPOFFHANDLE: too much right State: current stage " << tooMuchRightStage << ", " << elapsed);
             if(elapsed >= stageTurnTimer)
             {
                 ++tooMuchRightStage;
                 returnTimer = current_time;
-                ROS_INFO_STREAM("DROPOFFHANDLE: too much right State: switched to stage" << tooMuchRightStage << ", " << elapsed);
+                //ROS_INFO_STREAM("DROPOFFHANDLE: too much right State: switched to stage" << tooMuchRightStage << ", " << elapsed);
             }
             break;
         case 2:
             result.pd.cmdVel = stageSpeed;
             result.pd.cmdAngularError = 0.0;
-            ROS_INFO_STREAM("DROPOFFHANDLE: too much right State: current stage " << tooMuchRightStage << ", " << elapsed);
+            //ROS_INFO_STREAM("DROPOFFHANDLE: too much right State: current stage " << tooMuchRightStage << ", " << elapsed);
             if(elapsed >= stageShortForwardTimer)
             {
                 tooMuchRightStage = -1;
                 reachedCollectionPoint = true;
                 centerApproach = false;
                 returnTimer = current_time;
-                ROS_INFO_STREAM("DROPOFFHANDLE: too much right State: switched to stage" << tooMuchRightStage << ", " << elapsed);
+                //ROS_INFO_STREAM("DROPOFFHANDLE: too much right State: switched to stage" << tooMuchRightStage << ", " << elapsed);
             }
             break;
         default:

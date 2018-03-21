@@ -320,8 +320,8 @@ void behaviourStateMachine(const ros::TimerEvent&)
             ////TODO: set Map
             logicController.SetCenterLocationOdom(centerMap);//initialize center
 
-            ROS_INFO_STREAM("rosAdap: GETING AVERAGE");
-            ROS_INFO_STREAM("rosAdap: updated center and update timer: (" << centerMap.x << ", " << centerMap.y << ")");
+            //ROS_INFO_STREAM("rosAdap: GETING AVERAGE");
+            //ROS_INFO_STREAM("rosAdap: updated center and update timer: (" << centerMap.x << ", " << centerMap.y << ")");
             //reset parameters
             pause2wait = false;
             counter_for_average = 0;
@@ -332,7 +332,7 @@ void behaviourStateMachine(const ros::TimerEvent&)
 
         else
         {
-            ROS_INFO_STREAM("rosA initial: " << counter_for_average);
+            ////ROS_INFO_STREAM("rosA initial: " << counter_for_average);
             return;
         }
 
@@ -408,7 +408,7 @@ void behaviourStateMachine(const ros::TimerEvent&)
             if(counter_for_average > NUM_of_LOCATIONS && initilized){
                 averageLocation(locationSumup, counter_for_average);
                 //Point center = updateCenterLocationWdst(locationSumup, normal_offSet_dst_centerUpdate);//normal_offSet_dst_centerUpdate -> 0 MAR_19
-                ROS_INFO_STREAM("rosAdap: newCenter afterOffSet: " << locationSumup.x << ", " << locationSumup.y);
+                //ROS_INFO_STREAM("rosAdap: newCenter afterOffSet: " << locationSumup.x << ", " << locationSumup.y);
                 logicController.SetCenterLocationOdom(locationSumup);//mar 19
                 //reset
                 collectionZoneSeenStartTime = time(0);
@@ -417,7 +417,7 @@ void behaviourStateMachine(const ros::TimerEvent&)
                 counter_for_average = 0;
                 pause2wait = false;
             }
-            ROS_INFO_STREAM("rosAdap: stopping");
+            //ROS_INFO_STREAM("rosAdap: stopping");
         }
 
         //normally interpret logic controllers actuator commands and deceminate them over the appropriate ROS topics
@@ -429,7 +429,7 @@ void behaviourStateMachine(const ros::TimerEvent&)
 
                 //only stop the rover when it is searching state and it has been more than ave_interval seconds since last time seeing home
                 if(currentState == '1' && initilized){
-                    ROS_INFO_STREAM("rosAdap: going to stop");
+                    //ROS_INFO_STREAM("rosAdap: going to stop");
                     //prepare for the summing up the locations
                     locationSumup.x = 0;
                     locationSumup.y = 0;
@@ -674,10 +674,10 @@ void mapHandler(const nav_msgs::Odometry::ConstPtr& message) {
         ++ counter_for_average;
 	if(counter_for_average > numIgnoreHomLocation){//Sammi: ingore the first 5 tags //mar_19
         	sumUpLocation(currentLocationMap, locationSumup);
-        	ROS_INFO_STREAM( "rosA: in MapH averaging: " << counter_for_average << ": " << currentLocationMap.x << ", " << currentLocationMap.y);
-		ROS_INFO_STREAM("rosAdap in MapH locationSumup: " << locationSumup.x << ", " << locationSumup.y);
+        	//ROS_INFO_STREAM( "rosA: in MapH averaging: " << counter_for_average << ": " << currentLocationMap.x << ", " << currentLocationMap.y);
+		//ROS_INFO_STREAM("rosAdap in MapH locationSumup: " << locationSumup.x << ", " << locationSumup.y);
 	}else{
-		ROS_INFO_STREAM("rosA: ingoring the location" << counter_for_average);
+		//ROS_INFO_STREAM("rosA: ingoring the location" << counter_for_average);
 	}
     }else{
         Point curr_loc;
@@ -748,9 +748,9 @@ void publishHeartBeatTimerEventHandler(const ros::TimerEvent&) {
     std_msgs::String msg;
     msg.data = "";
     heartbeatPublisher.publish(msg);
-    ROS_INFO_STREAM("Current Map: (" << currentLocationMap.x << ", " << currentLocationMap.y << ")");
-    ROS_INFO_STREAM("Current Odo: (" << currentLocation.x << ", " << currentLocation.y << ")");
-    ROS_INFO_STREAM("rosApad: state:" << currentState);
+    //ROS_INFO_STREAM("Current Map: (" << currentLocationMap.x << ", " << currentLocationMap.y << ")");
+   // ROS_INFO_STREAM("Current Odo: (" << currentLocation.x << ", " << currentLocation.y << ")");
+   // ROS_INFO_STREAM("rosApad: state:" << currentState);
 }
 
 long int getROSTimeInMilliSecs()
@@ -862,23 +862,23 @@ void sumUpLocation(geometry_msgs::Pose2D &location, Point &total_location){
 
 void averageLocation(Point &location, int &count){
     stringstream ss;
-    ROS_INFO_STREAM("rosAdap: in average: " << location.x << "/" << count << ", " << location.y << "/" << count
-                    << "locationSumUp: " << locationSumup.x << ", " << locationSumup.y);
+    //ROS_INFO_STREAM("rosAdap: in average: " << location.x << "/" << count << ", " << location.y << "/" << count
+    //                << "locationSumUp: " << locationSumup.x << ", " << locationSumup.y);
     location.x /= count - numIgnoreHomLocation;//Mar 19
     location.y /= count - numIgnoreHomLocation;//Mar 19
     location.theta /= count - numIgnoreHomLocation;//Mar 19
 
-    ROS_INFO_STREAM("rosAdap: after average: " << locationSumup.x << ", " << locationSumup.y);
+    //ROS_INFO_STREAM("rosAdap: after average: " << locationSumup.x << ", " << locationSumup.y);
 }
 
 Point updateCenterLocationWdst(const Point &curLoc, float &offDst){
     Point center;
     center.theta = curLoc.theta;
-    ROS_INFO_STREAM("rosAdap: CENTER THETA: " << center.theta);
+    //ROS_INFO_STREAM("rosAdap: CENTER THETA: " << center.theta);
     center.x = curLoc.x + offDst*cos(curLoc.theta);
     center.y = curLoc.y + offDst*sin(curLoc.theta);
-    ROS_INFO_STREAM("rosAdap: curLoc: " << curLoc.x << ", " << curLoc.y);
-    ROS_INFO_STREAM("rosAdap: cos, sin * offDst: " << offDst*cos(curLoc.theta) << ", " << offDst*sin(curLoc.theta));
+    //ROS_INFO_STREAM("rosAdap: curLoc: " << curLoc.x << ", " << curLoc.y);
+   // ROS_INFO_STREAM("rosAdap: cos, sin * offDst: " << offDst*cos(curLoc.theta) << ", " << offDst*sin(curLoc.theta));
 
     return center;
 }
