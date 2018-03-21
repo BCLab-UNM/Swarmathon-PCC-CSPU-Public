@@ -1,6 +1,7 @@
 #include "DropOffController.h"
 #include <ros/ros.h>
 extern char currentState;
+extern bool dropoffReset;
 
 DropOffController::DropOffController() {
 
@@ -75,6 +76,7 @@ Result DropOffController::DoWork() {
         result.type = behavior;
         result.b = nextProcess;
         result.reset = true;
+        dropoffReset = true;
         return result;
       }
       else
