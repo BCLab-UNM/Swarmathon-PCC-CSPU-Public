@@ -32,16 +32,16 @@ void SearchController::Reset() {
  */
 Result SearchController::DoWork() {
     currentState = '1';
-    ROS_INFO_STREAM("count: " << counter << " attemp: " << attemptCount << " IN SEARCH");
+    //ROS_INFO_STREAM("count: " << counter << " attemp: " << attemptCount << " IN SEARCH");
     counter ++;//for testing pattern walk
     //initialize pattern walk
     if (!result.wpts.waypoints.empty()) {
-        ROS_INFO_STREAM("IN SEARCH: waypoint is not empty");
+       // ROS_INFO_STREAM("IN SEARCH: waypoint is not empty");
         if (hypot(result.wpts.waypoints[0].x-currentLocation.x, result.wpts.waypoints[0].y-currentLocation.y) < 0.15) {
             attemptCount = 0;
-            ROS_INFO_STREAM("IN SEARCH: I am very close to the last search location attemptCount = 0");
-            ROS_INFO_STREAM("IN SEARCH: cur loc: " << currentLocation.x << ", " << currentLocation.y);
-            ROS_INFO_STREAM("IN SEARCH: wpt loc: " << result.wpts.waypoints[0].x << ", " <<  result.wpts.waypoints[0].y);
+         //   ROS_INFO_STREAM("IN SEARCH: I am very close to the last search location attemptCount = 0");
+         //   ROS_INFO_STREAM("IN SEARCH: cur loc: " << currentLocation.x << ", " << currentLocation.y);
+          //  ROS_INFO_STREAM("IN SEARCH: wpt loc: " << result.wpts.waypoints[0].x << ", " <<  result.wpts.waypoints[0].y);
         }
     }else{
         //for fixing the interuption by obstacle avoicance after waypoint gets cleared up but not yet assigning a new one
@@ -51,7 +51,7 @@ Result SearchController::DoWork() {
     if (attemptCount > 0 && attemptCount < ATTEMPTS) {
         attemptCount++;
         if (succesfullPickup) {
-            ROS_INFO_STREAM("IN SEARCH: successfulPickup");
+          //  ROS_INFO_STREAM("IN SEARCH: successfulPickup");
             succesfullPickup = false;
             attemptCount = 1;
         }
@@ -93,8 +93,8 @@ Result SearchController::DoWork() {
         result.wpts.waypoints.clear();
         result.wpts.waypoints.insert(result.wpts.waypoints.begin(), searchLocation);
 
-        ROS_INFO_STREAM("IN SEARCH: cur loc: " << currentLocation.x << ", " << currentLocation.y <<"|" << currentLocation.theta);
-        ROS_INFO_STREAM("IN SEARCH: new loc: " << searchLocation.x << ", " << searchLocation.y << "|" << searchLocation.theta);
+       // ROS_INFO_STREAM("IN SEARCH: cur loc: " << currentLocation.x << ", " << currentLocation.y <<"|" << currentLocation.theta);
+       // ROS_INFO_STREAM("IN SEARCH: new loc: " << searchLocation.x << ", " << searchLocation.y << "|" << searchLocation.theta);
 
 
         return result;
@@ -117,7 +117,7 @@ void SearchController::SetCenterLocation(Point centerLocation) {
     nextSpinPoint.x -= diffX;
     nextSpinPoint.y -= diffY;
 
-    ROS_INFO_STREAM("IN SEARCH: CENTER: " << centerLocation.x << ", " << centerLocation.y);
+    //ROS_INFO_STREAM("IN SEARCH: CENTER: " << centerLocation.x << ", " << centerLocation.y);
 }
 
 void SearchController::SetCurrentLocation(Point currentLocation) {
