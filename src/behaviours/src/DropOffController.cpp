@@ -40,7 +40,7 @@ DropOffController::~DropOffController() {
 
 Result DropOffController::DoWork() {
 
-  ROS_INFO_STREAM("DropOff DoWork");
+  ROS_INFO_STREAM("DropOff DoWork Wangda");
 
   //Wangda***********
   printDirection = "";//Debug
@@ -233,11 +233,11 @@ Result DropOffController::DoWork() {
 
     if (seenEnoughCenterTags) //if we have seen enough tags
     {
-      if ((countLeft-5) > countRight) //and there are too many on the left
+      if ((countLeft-3) > countRight) //and there are too many on the left
       {
         right = false; //then we say none on the right to cause us to turn right
       }
-      else if ((countRight-5) > countLeft)
+      else if ((countRight-3) > countLeft)
       {
         left = false; //or left in this case
       }
