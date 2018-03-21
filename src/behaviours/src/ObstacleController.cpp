@@ -73,23 +73,32 @@ void ObstacleController::avoidObstacle() {
     }
 }
 
+int backup_duration = 3;
+int spin_duration = 5;
+int total_avoid_time = backup_duration + spin_duration;
+
 // A collection zone was seen in front of the rover and we are not carrying a target
 // so avoid running over the collection zone and possibly pushing cubes out.
 void ObstacleController::avoidCollectionZone() {
   
+    
+
+    long int Tdifference = current_time - timeSinceTags;
+    float Td = Tdifference/1e3;
+
     result.type = precisionDriving;
-
-    // Decide which side of the rover sees the most april tags and turn away
-    // from that side
-    if(count_left_collection_zone_tags < count_right_collection_zone_tags) {
-      result.pd.cmdAngular = K_angular;
-    } else {
-      result.pd.cmdAngular = -K_angular;
+     
+    if(Td < backup_duration)// first 5 seconds, back up
+    {
+      result.pd.cmdVel = -0.2;
+      result.pd.cmdAngular = 0;
     }
+    else // next 5 seconds, spin around
+    {
+      result.pd.cmdVel = 0.0;
+      result.pd.cmdAngular = K_angular;
+    } 
 
-    result.pd.setPointVel = 0.0;
-    result.pd.cmdVel = 0.0;
-    result.pd.setPointYaw = 0;
 }
 
 
@@ -146,7 +155,7 @@ void ObstacleController::ProcessData() {
   //there is no report of 0 tags seen
   long int Tdifference = current_time - timeSinceTags;
   float Td = Tdifference/1e3;
-  if (Td >= 0.5) {
+  if ((Td >= total_avoid_time && collection_zone_seen == true) || (Td >= 0.5 && collection_zone_seen == false)) {
     collection_zone_seen = false;
     phys= false;
     if (!obstacleAvoided)
@@ -198,26 +207,30 @@ void ObstacleController::ProcessData() {
   }
 }
 
+
 // Report April tags seen by the rovers camera so it can avoid
 // the collection zone
 // Added relative pose information so we know whether the
 // top of the AprilTag is pointing towards the rover or away.
 // If the top of the tags are away from the rover then treat them as obstacles. 
 void ObstacleController::setTagData(vector<Tag> tags){
-  collection_zone_seen = false;
+  //collection_zone_seen = false;
   count_left_collection_zone_tags = 0;
   count_right_collection_zone_tags = 0;
+
 
   // this loop is to get the number of center tags
   if (!targetHeld) {
     for (int i = 0; i < tags.size(); i++) { //redundant for loop
       if (tags[i].getID() == 256) {
-
-	collection_zone_seen = checkForCollectionZoneTags( tags );
+	//collection_zone_seen = checkForCollectionZoneTags( tags );
+        collection_zone_seen = true;
         timeSinceTags = current_time;
+        
       }
     }
   }
+
 }
 
 bool ObstacleController::checkForCollectionZoneTags( vector<Tag> tags ) {

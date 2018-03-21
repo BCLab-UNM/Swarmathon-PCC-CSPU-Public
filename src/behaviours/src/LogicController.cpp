@@ -36,95 +36,19 @@ void LogicController::Reset() {
 //The logical flow if the behaviours is controlled here by using a interrupt, haswork, priority queue system.
 Result LogicController::DoWork() {
 
- // obstacleController.setCurrentState(GetProcessState());
+  Result result;
 
-
-	Result result;
-
-
-
-  stringstream ss;
-  ss << "\nLogicController::DoWork()" << "\n";
-  ss << "Process state = " << GetProcessState() << "\n";
-  std_msgs::String msg;
-  msg.data = ss.str();
-  infoLogPublisher.publish(msg);
-
-  
-
-  if(processState == PROCCESS_STATE_TARGET_PICKEDUP)
-      {
-        stringstream ss2;
-        ss2 << "PROCCESS_STATE_TARGET_PICKEDUP" << "\n";
-
-        ROS_INFO_STREAM("processState: PROCCESS_STATE_TARGET_PICKEDUP");
-
-        if(pickUpController.IsHoldingCube())
-        {
-          ROS_INFO_STREAM("processState: go back to search and reset");
-          /*pickUpController.Reset();
-          searchController.Reset();
-          //dropoffController.Reset();
-          obstacleController.Reset();
-          range_controller.Reset();
-          ProcessData();*/
-	result.type = behavior;
-        result.b = prevProcess;
-        result.reset = false;
-          ss2 << "Target NOT Held" << "\n";
-        }else{
-          ss2 << "Target Held" << "\n";
-        }
-        std_msgs::String msg2;
-        msg2.data = ss2.str();
-        infoLogPublisher.publish(msg2);
-        
-      }
-	//else 
-      {
-
-	//first a loop runs through all the controllers who have a priority of 0 or above witht he largest number being
-        //most important. A priority of less than 0 is an ignored controller use -1 for standards sake.
-        //if any controller needs and interrupt the logic state is changed to interrupt
-        for(PrioritizedController cntrlr : prioritizedControllers) {
-          if(cntrlr.controller->ShouldInterrupt() && cntrlr.priority >= 0) 
-          {
-	    logicState = LOGIC_STATE_INTERRUPT;
-	    //do not break all shouldInterupts may need calling in order to properly pre-proccess data.
-          }
-      }
+  //first a loop runs through all the controllers who have a priority of 0 or above witht he largest number being
+  //most important. A priority of less than 0 is an ignored controller use -1 for standards sake.
+  //if any controller needs and interrupt the logic state is changed to interrupt
+  for(PrioritizedController cntrlr : prioritizedControllers) 
+  {
+    if(cntrlr.controller->ShouldInterrupt() && cntrlr.priority >= 0) 
+    {
+      logicState = LOGIC_STATE_INTERRUPT;
+    }
   }
-
-
-
-/*else if(processState == PROCCESS_STATE_DROP_OFF){
-
-        stringstream ss2;
-        ss2 << "PROCCESS_STATE_DROP_OFF" << "\n";
-        std_msgs::String msg2;
-        msg2.data = ss2.str();
-        infoLogPublisher.publish(msg2);
-        
-
-      }else if(processState == PROCCESS_STATE_SEARCHING){
-
-        stringstream ss2;
-        ss2 << "PROCCESS_STATE_SEARCHING" << "\n";
-        std_msgs::String msg2;
-        msg2.data = ss2.str();
-        infoLogPublisher.publish(msg2);
-        
-
-      }
-*/
- 
   
-   
-
-  
-
-
-
   //logic state switch
   switch(logicState) {
 

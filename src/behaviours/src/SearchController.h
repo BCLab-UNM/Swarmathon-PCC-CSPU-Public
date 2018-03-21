@@ -3,8 +3,8 @@
 
 #include <random_numbers/random_numbers.h>
 #include "Controller.h"
-#include <math.h>
 
+#include <math.h>
 
 /**
  * This class implements the search control algorithm for the rovers. The code
@@ -29,12 +29,12 @@ public:
   void SetCenterLocation(Point centerLocation);
   void SetSuccesfullPickup();
 
+  void patternDeterminator(Point pre_point);
+  Point calGoalPos(float a, float b, float theta, Point pre_point);
+
 protected:
 
   void ProcessData();
-  void setNextGoalPos();
-  void setIntialPos();
-  Point calculateTempPoint();
 
 private:
 
@@ -42,6 +42,7 @@ private:
   Point currentLocation;
   Point centerLocation;
   Point searchLocation;
+//  Point subGoalPos;
   int attemptCount = 0;
   //struct for returning data to ROS adapter
   Result result;
@@ -52,16 +53,18 @@ private:
   bool succesfullPickup = false;
 
   //sammi: pattern walk
-  Point nextGoalPos;
-  Point tempPoint;//a point in the map with no angel drifting
-  const float INCREASE_x_y = 0.75/sqrt(2);//the increasing x and y, since the pattern walk is 1/4 division of the arena with origin at home
-  const float START_LEN = 1.3;//meter
-  float THETA_TRAN;
-  float r_patterWalk;
-  
-  //localization 
-  float testingDistance = 0;
-  Point testing_last_pos;
+//  void setNextGoalPos();
+
+  //sammi: pattern walk
+  Point startPoint;
+  float diffX = 0, diffY = 0;
+  const float initialSpinSize = 0.05; //in meters aka 10cm
+  const float spinSizeIncrement = 0.50; //in meters
+  float spinSizeIncrease = 0;
+  float depthFromHome = 2.5;//meter
+  float spinner = 0;
+  Point nextSpinPoint;
+
 };
 
 #endif /* SEARCH_CONTROLLER */
