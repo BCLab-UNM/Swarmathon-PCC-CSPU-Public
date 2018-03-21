@@ -186,7 +186,7 @@ long int getROSTimeInMilliSecs();
 
 
 ////sammi
-bool cubeHeld = false;
+bool dropoffReset = false;
 float normal_offSet_dst_centerUpdate = 1.5;//0->1.5 MAR_19
 bool collectionZoneSeen = false;
 const int ave_interval = 150;////in sec TODO: physical testing to set it
@@ -199,6 +199,7 @@ int counter_for_average = 0;
 const int NUM_of_LOCATIONS = 44;////TODO: physical testing
 Point centerMap;
 const int numIgnoreHomLocation = 5;
+
 
 ////sammi
 void sumUpLocation(geometry_msgs::Pose2D &location, Point &total_location);
@@ -331,7 +332,7 @@ void behaviourStateMachine(const ros::TimerEvent&)
 
         else
         {
-            ROS_INFO_STREAM("initial: " << counter_for_average);
+            ROS_INFO_STREAM("rosA initial: " << counter_for_average);
             return;
         }
 
@@ -404,7 +405,7 @@ void behaviourStateMachine(const ros::TimerEvent&)
             angle.data = prevWrist;
             wristAnglePublish.publish(angle);
 
-            if(counter_for_average > NUM_of_LOCATIONS){
+            if(counter_for_average > NUM_of_LOCATIONS && initilized){
                 averageLocation(locationSumup, counter_for_average);
                 //Point center = updateCenterLocationWdst(locationSumup, normal_offSet_dst_centerUpdate);//normal_offSet_dst_centerUpdate -> 0 MAR_19
                 ROS_INFO_STREAM("rosAdap: newCenter afterOffSet: " << locationSumup.x << ", " << locationSumup.y);
@@ -412,6 +413,7 @@ void behaviourStateMachine(const ros::TimerEvent&)
                 //reset
                 collectionZoneSeenStartTime = time(0);
                 collectionZoneSeen = false;//very important!!!
+		dropoffReset = false;
                 counter_for_average = 0;
                 pause2wait = false;
             }
@@ -421,7 +423,7 @@ void behaviourStateMachine(const ros::TimerEvent&)
         //normally interpret logic controllers actuator commands and deceminate them over the appropriate ROS topics
         else{
             //when collectionZoneSeen is true, it means rover sees home and the timeElaspe is already up.
-            if(collectionZoneSeen){
+            if(collectionZoneSeen || dropoffReset){
 //                collectionZoneSeenTimeElapsed = time(0) - collectionZoneSeenStartTime;//how long has been since last time when the collection zone is seen
 //                ROS_INFO_STREAM("rosAdap: collectionZoneSeenTimeElapsed: " << collectionZoneSeenTimeElapsed);
 
@@ -593,7 +595,7 @@ void odometryHandler(const nav_msgs::Odometry::ConstPtr& message) {
 
     if(pause2wait){
 //        sumUpLocation(currentLocation,locationSumup);
-        ++ counter_for_average;
+//        ++ counter_for_average;
     }else{
 
         Point curr_loc;
@@ -669,12 +671,13 @@ void mapHandler(const nav_msgs::Odometry::ConstPtr& message) {
     angularVelocity = message->twist.twist.angular.z;
 
     if(pause2wait){
+        ++ counter_for_average;
 	if(counter_for_average > numIgnoreHomLocation){//Sammi: ingore the first 5 tags //mar_19
-        	++ counter_for_average;
         	sumUpLocation(currentLocationMap, locationSumup);
         	ROS_INFO_STREAM( "rosA: in MapH averaging: " << counter_for_average << ": " << currentLocationMap.x << ", " << currentLocationMap.y);
+		ROS_INFO_STREAM("rosAdap in MapH locationSumup: " << locationSumup.x << ", " << locationSumup.y);
 	}else{
-		ROS_INFO_STREAM("ingoring the location");
+		ROS_INFO_STREAM("rosA: ingoring the location" << counter_for_average);
 	}
     }else{
         Point curr_loc;
@@ -854,7 +857,7 @@ void humanTime() {
 void sumUpLocation(geometry_msgs::Pose2D &location, Point &total_location){
     total_location.x += location.x;
     total_location.y += location.y;
-    total_location.theta += location.theta;////todo: may not need this.
+    total_location.theta += location.theta;////todo: may not need this.	
 }
 
 void averageLocation(Point &location, int &count){

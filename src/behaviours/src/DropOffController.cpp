@@ -1,4 +1,6 @@
 #include "DropOffController.h"
+#include <ros/ros.h>
+extern char currentState;
 
 DropOffController::DropOffController() {
 
@@ -39,7 +41,7 @@ DropOffController::~DropOffController() {
 }
 
 Result DropOffController::DoWork() {
-
+  currentState = '3';
   ROS_INFO_STREAM("DropOff DoWork Wangda");
 
   //Wangda***********
@@ -572,7 +574,8 @@ void DropOffController::ProcessImage(){
 
 
 void DropOffController::ProcessData() {
-  ProcessImage();
+
+  //ProcessImage();
   
 
   if((countLeft + countRight) > 0) {

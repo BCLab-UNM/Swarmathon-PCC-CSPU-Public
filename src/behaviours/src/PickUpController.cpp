@@ -8,6 +8,7 @@
 #include <ros/ros.h>
 #include <sstream>
 #include <std_msgs/String.h>
+extern char currentState;
 extern ros::Publisher infoLogPublisher;
 extern ros::Publisher fingerAnglePublish;
 
@@ -379,6 +380,7 @@ bool PickUpController::ShouldInterrupt(){
 
 Result PickUpController::DoWork()
 {
+  currentState = '2';
 
   // alex c Debug
   stringstream ss;
