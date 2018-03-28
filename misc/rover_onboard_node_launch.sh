@@ -17,9 +17,9 @@ export GAZEBO_PLUGIN_PATH="../build/gazebo_plugins"
 
 #Point to ROS master on the network
 echo "point to ROS master on the network"
-if [ -z "$1" ]
+if [ -z "$2" ]
 then
-    echo "Error: ROS_MASTER_URI hostname was not provided"
+    echo "Usage: ./rover_onboard_node_launch.sh master_hostname calibration_location"
     exit 1
 else
     export ROS_MASTER_URI=http://$1:11311
